@@ -2,10 +2,12 @@
 
 ###Introduction and Functions
 This is the OSD variant of CYCLOP+, the upgrade firmware for the Quanum Cyclops googles.
-The major function of this project (CYCLOP+ with OSD) is to add the ability to manually select channels using only the standard button on the receiver of the Quanum Cyclops.
-The second major function is to add support for displaying information to the google screen by adding a FPV OSD board. MavlinkOSD/MinimOSD type boards can be used.
-The third is to add support for a low battery buzzer.
+* The major functionality of this project (CYCLOP+ with OSD) is to make it possible manually select channels using only the standard button on the receiver of the Quanum Cyclops.
+* The second major function is to add support for displaying channel and battery information to the video signal by adding a FPV OSD board.
+* The third is to add support for a low battery buzzer.
+
 No hardware alteration is necessary to use CYCLOP+ with OSD. The MinimOSD display modification and buzzer modification are optional.
+
 This project was forked from v1.4 of the CYCLOP+ with OLED project. The original project uses an extra OLED screen to display information instead of the google screen.
 
 ###Version History
@@ -31,10 +33,10 @@ These modules are commonly used in RC FPV aircraft to add visual information to 
 In order to use a MinimOSD in the Cyclops googles, the firmware has to be replaced. The original software will not work in any way at all.
 
 ##Attach an alarm buzzer(optional)
-This modification is intended to use an active 5 volt miniature buzzer. 
+This modification is intended to use a 5 volt miniature piezzo buzzer as a low battery alarm. Both active buzzers, and passive piezzo speakers can be used. The later kind is often refered to as "PC Motherboard Speakers".
 An example of a piezo buzzer is this:
 ![Buzzer Example](/images/buzzer.jpg)
-Please note that there are also active piezo _speakers_ that look much the same. These do not produce a tone automatically. Do not use one of these.
+
 - Solder the red wire comming from your buzzer to the solder point marked D6. If your buzzer does not have a red wire instead solder the leg marked with a + to the D6 solder pad.
 - Solder the other (black) wire to a ground point. The legs of the antenna contact as well as the square through hole solder island in the middle of the PCB are ground points.
 - Enable the Low Battery Alarm option in the configuration menu.
