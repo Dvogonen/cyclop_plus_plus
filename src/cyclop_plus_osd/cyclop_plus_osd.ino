@@ -52,7 +52,7 @@ uint16_t autoScan( uint16_t frequency );
 uint16_t averageAnalogRead( uint8_t pin );
 void     batteryMeter(void);
 uint8_t  bestChannelMatch( uint16_t frequency );
-void     disolveDisplay(void);
+void     dissolveDisplay(void);
 void     drawAutoScanScreen(void);
 void     drawBattery(uint8_t xPos, uint8_t yPos, uint8_t value );
 void     drawChannelScreen( uint8_t channel, uint16_t rssi);
@@ -127,6 +127,7 @@ uint8_t alarmSoundOn = 0;
 uint16_t alarmOnPeriod = 0;
 uint16_t alarmOffPeriod = 0;
 uint8_t options[MAX_OPTIONS];
+boolean saveScreenActive = 0;
 
 //******************************************************************************
 //* function: setup
@@ -211,8 +212,10 @@ void loop()
       break;
 
     case SINGLE_CLICK: // up the frequency
-      currentChannel = nextChannel( currentChannel );
-      setRTC6715Frequency(getFrequency(currentChannel));
+      if (!( options[SAVE_SCREEN_OPTION] && saveScreenActive )) { // Single click to wake up
+        currentChannel = nextChannel( currentChannel );
+        setRTC6715Frequency(getFrequency(currentChannel));
+      }
       drawChannelScreen(currentChannel, 0);
       break;
 
@@ -804,11 +807,11 @@ void testAlarm( void ) {
 //* Screen functions
 //******************************************************************************
 //******************************************************************************
-//* function: disolveDisplay
-//*         : fancy graphics stuff that disolves the screen into black
+//* function: dissolveDisplay
+//*         : fancy graphics stuff that dissolves the screen into black
 //*         : unnecessary, but fun
 //******************************************************************************
-void disolveDisplay(void)
+void dissolveDisplay(void)
 {
   uint8_t x, y, i = 30;
   uint16_t j;
@@ -833,6 +836,9 @@ void disolveDisplay(void)
 //******************************************************************************
 void drawStartScreen( void ) {
   uint8_t i;
+
+  saveScreenActive = 0;
+
   display.clearDisplay();
   display.drawLine(0, 0, 127, 0, WHITE);
   display.setTextColor(WHITE);
@@ -854,7 +860,7 @@ void drawStartScreen( void ) {
       return;
     delay(10);
   }
-  disolveDisplay();
+  dissolveDisplay();
   return;
 }
 
@@ -865,6 +871,8 @@ void drawStartScreen( void ) {
 void drawChannelScreen( uint8_t channel, uint16_t rssi) {
   char buffer[22];
   uint8_t i;
+
+  saveScreenActive = 0;
 
   display.clearDisplay();
   display.setTextColor(WHITE);
@@ -901,6 +909,8 @@ void drawChannelScreen( uint8_t channel, uint16_t rssi) {
 //* function: drawAutoScanScreen
 //******************************************************************************
 void drawAutoScanScreen( void ) {
+  saveScreenActive = 0;
+
   display.clearDisplay();
   display.setTextColor(WHITE);
   display.setCursor(10, 0);
@@ -921,6 +931,8 @@ void drawAutoScanScreen( void ) {
 //* function: drawScannerScreen
 //******************************************************************************
 void drawScannerScreen( void ) {
+  saveScreenActive = 0;
+
   display.clearDisplay();
   display.drawLine(0, 55, 127, 55, WHITE);
   display.setTextColor(WHITE);
@@ -940,6 +952,8 @@ void updateScannerScreen(uint8_t position, uint8_t value ) {
   // uint8_t i;
   static uint8_t last_position = 14;
   static uint8_t last_value = 0;
+
+  saveScreenActive = 0;
 
   // The scan graph only uses the 100 positions in the middle of the screen
   position = position + 14;
@@ -964,6 +978,8 @@ void updateScannerScreen(uint8_t position, uint8_t value ) {
 //*         : value = 0 to 100
 //******************************************************************************
 void drawBattery(uint8_t xPos, uint8_t yPos, uint8_t value ) {
+  saveScreenActive = 0;
+
   display.drawRect(3 + xPos,  0 + yPos, 4, 2, WHITE);
   display.drawRect(0 + xPos, 2 + yPos, 10, 20, WHITE);
   display.drawRect(2 + xPos,  4 + yPos, 6, 16, BLACK);
@@ -984,6 +1000,9 @@ void drawBattery(uint8_t xPos, uint8_t yPos, uint8_t value ) {
 //******************************************************************************
 void drawOptionsScreen(uint8_t option ) {
   uint8_t i, j;
+
+  saveScreenActive = 0;
+
   display.clearDisplay();
   display.setCursor(0, 0);
   display.setTextSize(1);
@@ -1035,5 +1054,6 @@ void drawEmptyScreen( void)
 {
   display.clearDisplay();
   display.display();
+  saveScreenActive = 1;
 }
 
