@@ -1,14 +1,68 @@
+/*******************************************************************************
+  CYCLOP+ with OSD brings manual channel selection and onscreen information to
+  the HobbyKing Quanum Cyclops FPV googles.
+
+  The rx5808-pro and rx5808-pro-diversity projects served as a starting
+  point for the code base, even if little of the actual code remains.
+  Without those projects CYCLOP+ would not have been created. All possible
+  credit goes to the two mentioned projects and their contributors.
+
+  The OSD_Max7456 library from the night-ghost minimosd-extra project was used
+  as a starting point for the MAX7456 library
+
+  Copyright (c) 2016 Kjell Kernen (Dvogonen)
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+********************************************************************************/
+/*******************************************************************************
+   Includes
+ *******************************************************************************/
 #include "max7456.h"
 #include <SPI.h>
 
-#define LED 13
+/*******************************************************************************
+   Hardware Defines
+ *******************************************************************************/
+#define LED_PIN  13
+#define CS_PIN   10
 
-//Pointer to a max7456 object
-Max7456 *osd = NULL;
+/*******************************************************************************
+   Serial Command Defines
+ *******************************************************************************/
+#define CMD_CMD             0
+#define CMD_LOAD_CHARS      1
+#define CMD_CLEAR_SCREEN    2
+#define CMD_ENABLE_OSD      3
+#define CMD_DISABLE_OSD     4
+#define CMD_ENABLE_VIDEO    5
+#define CMD_DISABLE_VIDEO   6
+#define CMD_ENABLE_BLINK    7
+#define CMD_DISABLE_BLINK   8
+#define CMD_ENABLE_REVERSE  9
+#define CMD_DISABLE_REVERSE 10
+#define CMD_SET_X           11
+#define CMD_SET_Y           12
 
-// Character bitmaps stored in program memory. They require more memory than is available in RAM
-// 0xFF is stored as 0x55 since program memory canmot hold series of 0xFF (Arduino vicious problem)
-
+/*******************************************************************************
+   Character bitmaps stored in program memory. Needs more memory than in RAM
+   0xFF is stored as 0x55 since program memory canmot hold series of 0xFF
+ *******************************************************************************/
 const char tableOfAllCharacters[13824] PROGMEM = {
   0x55, 0x55, 0x55, 0x54, 0x00, 0x15, 0x40, 0xaa,
   0x01, 0x4a, 0xaa, 0xa1, 0x4a, 0xaa, 0xa1, 0x4a,
@@ -1740,23 +1794,159 @@ const char tableOfAllCharacters[13824] PROGMEM = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-// Setup writes a complete char table to the character memory of the max7456.
-void setup() {
-  SPI.begin();
-  osd = new Max7456(10);    // New Max7456 with CS on pin 9.
-  osd->activateOSD(false);  // Deactivate osd display.
-  pinMode(LED, OUTPUT);
-  charact currentChar;      // Represents a character as stored in memory (byte[54])
-  for (int i = 0 ; i <= 0xff; i++)
-  {
-    digitalWrite(LED, !digitalRead(LED));
-    Max7456::getCARACFromProgMem(tableOfAllCharacters, i, currentChar);
-    osd->sendCharacter(currentChar, i & 0xF0, i & 0xF0); //We send currentChar at address i.
+/*******************************************************************************
+   max7456 state variables. It is OK to use value, but do not set them directly.
+   Use the set functions for manipulating the states.
+ *******************************************************************************/
+bool blinkState = false;
+bool osdState = false;
+bool inverseState = false;
+bool videoState = false;
+
+uint8_t curX = 0;
+uint8_t curY = 0;
+
+/*******************************************************************************
+   Other Global Variables
+ *******************************************************************************/
+Max7456 *osd = NULL; //Pointer to a max7456 object
+long systemPulseTimer = 0;
+
+/*******************************************************************************
+   Function: setBlinkState
+ *******************************************************************************/
+void setBlinkState( bool newState ) {
+  if ( newState != blinkState) {
+    blinkState = newState;
   }
 }
 
-// Nothing is done in the loop
-void loop()
-{
-  digitalWrite(LED, LOW);   // LED permanently on
+/*******************************************************************************
+   Function: setOSDState
+ *******************************************************************************/
+void setOsdState( bool newState ) {
+  if ( newState != osdState) {
+    osdState = newState;
+    osd->activateOSD( osdState );
+  }
+}
+
+/*******************************************************************************
+   Function: setReverseCharState
+ *******************************************************************************/
+void setInverseState( bool newState ) {
+  if ( newState != inverseState) {
+    inverseState = newState;
+  }
+}
+
+/*******************************************************************************
+   Function: setVideoState
+ *******************************************************************************/
+void setVideoState( bool newState ) {
+  if ( newState != videoState) {
+    videoState = newState;
+    osd->activateExternalVideo( videoState );
+  }
+}
+
+/*******************************************************************************
+   Function: loadCharSet
+             Loads the predefined character of the variable tableOfAllCharacters
+             into the character memory of the max7456 circuit
+ *******************************************************************************/
+void loadCharSet( void ) {
+  charact currentChar;      // Represents a character as stored in memory (byte[54])
+  bool initialOsdState = osdState;
+
+  setOsdState( false );     // Deactivate osd display.
+  for (int i = 0 ; i <= 0xff; i++)
+  {
+    Max7456::getCARACFromProgMem(tableOfAllCharacters, i, currentChar);
+    osd->sendCharacter(currentChar, i & 0xF0, i & 0xF0);
+  }
+  setOsdState( initialOsdState );
+}
+
+/*******************************************************************************
+   Function: setup
+             The Arduino setup function. Automatically run before loop is entered
+ *******************************************************************************/
+void setup() {
+  // LED setup
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite( LED_PIN, LOW );   // This turns on the LED
+
+  // MAX7456 setup
+  SPI.begin();
+  osd = new Max7456(CS_PIN);
+  setBlinkState( blinkState );
+  setOsdState( osdState );
+  setInverseState( inverseState);
+  setVideoState(videoState);
+  loadCharSet();
+
+  // Serial channel setup
+  Serial.begin(9600);
+}
+
+/*******************************************************************************
+   Function: loop
+             Arduinos main loop function. May never return
+ *******************************************************************************/
+void loop() {
+  bool activeCommand = false;
+  bool waitingForX = false;
+  bool waitingForY = false;
+  char inChar;
+
+  // Process serial data
+  if (Serial.available()) {
+    inChar = Serial.read();
+    if (activeCommand) {
+      switch (inChar) {
+        case CMD_LOAD_CHARS:      loadCharSet(); break;
+        case CMD_CLEAR_SCREEN:    osd->clearScreen(); break;
+        case CMD_ENABLE_OSD:      setOsdState( true ); break;
+        case CMD_DISABLE_OSD:     setOsdState(false); break;
+        case CMD_ENABLE_VIDEO:    setVideoState( true ); break;
+        case CMD_DISABLE_VIDEO:   setVideoState( false ); break;
+        case CMD_ENABLE_BLINK:    setBlinkState( true ); break;
+        case CMD_DISABLE_BLINK:   setBlinkState( false ); break;
+        case CMD_ENABLE_REVERSE:  setInverseState( true ); break;
+        case CMD_DISABLE_REVERSE: setInverseState( false ); break;
+        case CMD_SET_X:           waitingForX = true; break;
+        case CMD_SET_Y:           waitingForY = true; break;
+        default: break;           // Unknown command - Just skip it
+      }
+      activeCommand = false;
+    }
+    else if (waitingForX) {
+      curX = inChar;
+      waitingForX = false;
+    }
+    else if (waitingForY) {
+      curY = inChar;
+      waitingForY = false;
+    }
+    else if ( inChar == CMD_CMD) {
+      activeCommand = true;
+    }
+    else {
+      osd->printMax7456Char( inChar, curX, curY, blinkState, inverseState );
+      curX++;
+      if (curX >= 30) { // 30 columns on screen
+        curX = 0;
+        curY++;
+      }
+      if (curY >= 13) { // 13 rows in NTSC, 15 in PAL
+        curY = 0;
+      }
+    }
+  }
+  // Check if it is time to toggle the LED to show that we are alive
+  if (millis() > systemPulseTimer) {
+    systemPulseTimer = millis() + 500;
+    digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+  }
 }
