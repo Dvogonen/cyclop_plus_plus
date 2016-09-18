@@ -30,6 +30,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 ********************************************************************************/
+
 /*******************************************************************************
    Includes
  *******************************************************************************/
@@ -37,27 +38,39 @@
 #include <SPI.h>
 
 /*******************************************************************************
-   Hardware Defines
+ Minimosd Display Protocol Definition v1.0
+   Formal definition for the display protocol: (Token[Command[Param]])*
+   Tokens,  commands and params are all bytes.
+   All tokens except 0 results in the corresponding character in the Max7456 
+   charmap being displayed onscreen  att current position using current paramss.
+   The token 0 signals that the next byte is a command.
+   Some commands have a single param.
+   Invalid characters are ignored (e.g. unknown commands, params that are out of 
+   bounds, etc).
+ *******************************************************************************
+ Protocol Commands:   
  *******************************************************************************/
-#define LED_PIN  13
-#define CS_PIN   10
+#define CMD_CMD             0   /* The start command token.                    */
+#define CMD_LOAD_CHARS      1   /* Load charset to EEPROM. Needed only once    */
+#define CMD_CLEAR_SCREEN    2   /* Empties the screen                          */
+#define CMD_ENABLE_OSD      3   /* Shows OSD on video out                      */
+#define CMD_DISABLE_OSD     4   /* Hides OSD on video out                      */
+#define CMD_ENABLE_VIDEO    5   /* Shows video in on video out                 */
+#define CMD_DISABLE_VIDEO   6   /* Hides video in from video out               */
+#define CMD_ENABLE_BLINK    7   /* All upcomming characters will blink         */
+#define CMD_DISABLE_BLINK   8   /* All upcoming characters will be stable      */
+#define CMD_ENABLE_REVERSE  9   /* All upcoming characters are inversed        */
+#define CMD_DISABLE_REVERSE 10  /* All upcoming characters without inverse     */
+#define CMD_NEWLINE         11  /* Moves cursor to start of the next line      */
+#define CMD_SET_X           12  /* Position X cursor (next char is a parameter)*/
+#define CMD_SET_Y           13  /* Position Y cursor (next char is a parameter)*/
 
 /*******************************************************************************
-   Serial Command Defines
+   Hardware Defines
  *******************************************************************************/
-#define CMD_CMD             0
-#define CMD_LOAD_CHARS      1
-#define CMD_CLEAR_SCREEN    2
-#define CMD_ENABLE_OSD      3
-#define CMD_DISABLE_OSD     4
-#define CMD_ENABLE_VIDEO    5
-#define CMD_DISABLE_VIDEO   6
-#define CMD_ENABLE_BLINK    7
-#define CMD_DISABLE_BLINK   8
-#define CMD_ENABLE_REVERSE  9
-#define CMD_DISABLE_REVERSE 10
-#define CMD_SET_X           11
-#define CMD_SET_Y           12
+#define LED_PIN     13
+#define CS_PIN      10
+#define MAX_LINES   13
 
 /*******************************************************************************
    Character bitmaps stored in program memory. Needs more memory than in RAM
@@ -1795,16 +1808,16 @@ const char tableOfAllCharacters[13824] PROGMEM = {
 };
 
 /*******************************************************************************
-   max7456 state variables. It is OK to use value, but do not set them directly.
-   Use the set functions for manipulating the states.
+   max7456 state variables. It is OK to use state values , but do not set them 
+   directly. Use the set functions for manipulating the states.
  *******************************************************************************/
 bool blinkState = false;
 bool osdState = false;
 bool inverseState = false;
 bool videoState = false;
 
-uint8_t curX = 0;
-uint8_t curY = 0;
+uint8_t curX = 0;        // May be directly manipulated
+uint8_t curY = 0;        // May be directly manipulated
 
 /*******************************************************************************
    Other Global Variables
@@ -1851,14 +1864,23 @@ void setVideoState( bool newState ) {
 }
 
 /*******************************************************************************
+   Function: newLine
+ *******************************************************************************/
+void newLine( void ) {
+  curX = 0;
+  curY++;
+  if (curY >= MAX_LINES)
+    curY = 0;
+}
+
+/*******************************************************************************
    Function: loadCharSet
-             Loads the predefined character of the variable tableOfAllCharacters
-             into the character memory of the max7456 circuit
+             Loads the predefined characters of the variable tableOfAllCharacters
+             into the EEPROM character memory of the max7456 circuit
  *******************************************************************************/
 void loadCharSet( void ) {
   charact currentChar;      // Represents a character as stored in memory (byte[54])
   bool initialOsdState = osdState;
-
   setOsdState( false );     // Deactivate osd display.
   for (int i = 0 ; i <= 0xff; i++)
   {
@@ -1875,7 +1897,7 @@ void loadCharSet( void ) {
 void setup() {
   // LED setup
   pinMode(LED_PIN, OUTPUT);
-  digitalWrite( LED_PIN, LOW );   // This turns on the LED
+  digitalWrite( LED_PIN, LOW );   // Turn on the LED
 
   // MAX7456 setup
   SPI.begin();
@@ -1915,6 +1937,7 @@ void loop() {
         case CMD_DISABLE_BLINK:   setBlinkState( false ); break;
         case CMD_ENABLE_REVERSE:  setInverseState( true ); break;
         case CMD_DISABLE_REVERSE: setInverseState( false ); break;
+        case CMD_NEWLINE:         setInverseState( false ); break;
         case CMD_SET_X:           waitingForX = true; break;
         case CMD_SET_Y:           waitingForY = true; break;
         default: break;           // Unknown command - Just skip it
@@ -1939,7 +1962,7 @@ void loop() {
         curX = 0;
         curY++;
       }
-      if (curY >= 13) { // 13 rows in NTSC, 15 in PAL
+      if (curY >= MAX_LINES) {
         curY = 0;
       }
     }
