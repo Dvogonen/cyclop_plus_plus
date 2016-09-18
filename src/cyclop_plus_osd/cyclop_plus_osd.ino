@@ -1,5 +1,5 @@
 /*******************************************************************************
-  CYCLOP+ with OSD brings manual channel selection and onscreen information to 
+  CYCLOP+ with OSD brings manual channel selection and onscreen information to
   the HobbyKing Quanum Cyclops FPV googles.
 
   The rx5808-pro and rx5808-pro-diversity projects served as a starting
@@ -31,20 +31,68 @@
   SOFTWARE.
 ********************************************************************************/
 // Application includes
-#include "cyclop_plus.h"
+#include "cyclop_plus_osd.h"
 
 // Library includes
 #include <avr/pgmspace.h>
 #include <string.h>
 #include <EEPROM.h>
-#ifdef SSD1306_OLED_DRIVER
-#include <Adafruit_SSD1306.h>
-#endif
-#ifdef SH1106_OLED_DRIVER
-#include "libraries/adafruit_sh1106/Adafruit_SH1106.h"
-#endif
-#include <Adafruit_GFX.h>
 
+/*******************************************************************************
+  Minimosd Display Protocol Definition v1.0
+   Formal definition for the display protocol: (Token[Command[Param]])*
+   Tokens,  commands and params are all bytes.
+   All tokens except 0 results in the corresponding character in the Max7456
+   charmap being displayed onscreen  att current position using current paramss.
+   The token 0 signals that the next byte is a command.
+   Some commands have a single param.
+   Invalid characters are ignored (e.g. unknown commands, params that are out of
+   bounds, etc).
+ *******************************************************************************
+  Protocol Commands:
+ *******************************************************************************/
+#define CMD_CMD             0   /* The start command token.                    */
+#define CMD_LOAD_CHARS      1   /* Load charset to EEPROM. Needed only once    */
+#define CMD_CLEAR_SCREEN    2   /* Empties the screen                          */
+#define CMD_ENABLE_OSD      3   /* Shows OSD on video out                      */
+#define CMD_DISABLE_OSD     4   /* Hides OSD on video out                      */
+#define CMD_ENABLE_VIDEO    5   /* Shows video in on video out                 */
+#define CMD_DISABLE_VIDEO   6   /* Hides video in from video out               */
+#define CMD_ENABLE_BLINK    7   /* All upcomming characters will blink         */
+#define CMD_DISABLE_BLINK   8   /* All upcoming characters will be stable      */
+#define CMD_ENABLE_INVERSE  9   /* All upcoming characters are inversed        */
+#define CMD_DISABLE_INVERSE 10  /* All upcoming characters without inverse     */
+#define CMD_NEWLINE         11  /* Moves cursor to start of the next line      */
+#define CMD_SET_X           12  /* Position X cursor (next char is a parameter)*/
+#define CMD_SET_Y           13  /* Position Y cursor (next char is a parameter)*/
+
+//******************************************************************************
+//* Character constants
+
+#define OSD_BATTERY_100     0x01
+#define OSD_BATTERY_75      0x02
+#define OSD_BATTERY_50      0x03
+#define OSD_BATTERY_25      0x04
+#define OSD_BATTERY_0       0x05
+#define OSD_METER_START     0x06
+#define OSD_METER_100       0x07
+#define OSD_METER_66        0x08
+#define OSD_METER_33        0x09
+#define OSD_METER_0         0x0A
+#define OSD_METER_END       0x0B
+#define OSD_ANTENNA         0x0C
+#define OSD_MHZ             0x0D
+#define OSD_DEGREE          0x0E
+#define OSD_BAR_0010        0x10
+#define OSD_BAR_1010        0x11
+#define OSD_BAR_0001        0x12
+#define OSD_BAR_0101        0x13
+#define OSD_BAR_0011        0x14
+#define OSD_BAR_1011        0x15
+#define OSD_BAR_0111        0x16
+#define OSD_BAR_1111        0x17
+#define OSD_SPACE           0x20
+#define OSD_LOGO            0x80
 //******************************************************************************
 //* File scope function declarations
 
@@ -64,6 +112,12 @@ uint8_t  getClickType(uint8_t buttonPin);
 uint16_t graphicScanner( uint16_t frequency );
 char    *longNameOfChannel(uint8_t channel, char *name);
 uint8_t  nextChannel( uint8_t channel);
+void     osd( uint8_t command );
+void     osd( uint8_t command, uint8_t param );
+void     osd_char( uint8_t token );
+void     osd_int( uint16_t integer );
+void     osd_string( char *str );
+
 uint8_t  previousChannel( uint8_t channel);
 bool     readEeprom(void);
 void     resetOptions(void);
@@ -107,12 +161,6 @@ uint16_t getFrequency( uint8_t channel ) {
 
 //******************************************************************************
 //* Other file scope variables
-#ifdef SSD1306_OLED_DRIVER
-Adafruit_SSD1306 display(4);
-#endif
-#ifdef SH1106_OLED_DRIVER
-Adafruit_SH1106 display(4);
-#endif
 uint8_t lastClick = NO_CLICK;
 uint8_t currentChannel = 0;
 uint8_t lastChannel = 0;
@@ -160,23 +208,13 @@ void setup()
   setRTC6715Frequency(getFrequency(currentChannel));
 
   // Initialize the display
-#ifdef SSD1306_OLED_DRIVER
-  display.begin(SSD1306_SWITCHCAPVCC, OLED_I2C_ADR);
-#endif
-#ifdef SH1106_OLED_DRIVER
-  display.begin(SH1106_SWITCHCAPVCC, OLED_I2C_ADR);
-#endif
-  display.clearDisplay();
-  if (options[FLIP_SCREEN_OPTION])
-    display.setRotation(2);
-  display.display();
+  Serial.begin(9600);
+  osd( CMD_CMD, CMD_CLEAR_SCREEN );
 
   // Set Options
   if (digitalRead(BUTTON_PIN) == BUTTON_PRESSED ) {
     setOptions();
     writeEeprom();
-    if (options[FLIP_SCREEN_OPTION])
-      display.setRotation(2);
   }
   // Show start screen
   if (options[SHOW_STARTSCREEN_OPTION])
@@ -277,7 +315,6 @@ void loop()
 //*         : All options are reset to their default values
 //******************************************************************************
 void resetOptions(void) {
-  options[FLIP_SCREEN_OPTION]      = FLIP_SCREEN_DEFAULT;
   options[LIPO_2S_METER_OPTION]    = LIPO_2S_METER_DEFAULT;
   options[LIPO_3S_METER_OPTION]    = LIPO_3S_METER_DEFAULT;
   options[BATTERY_ALARM_OPTION]    = BATTERY_ALARM_DEFAULT;
@@ -341,7 +378,7 @@ uint8_t getClickType(uint8_t buttonPin) {
   }
   if (timer >= 40)                  // 40 * 5 ms = 0.2s
     return click_type;
-    
+
   if (digitalRead(buttonPin) == BUTTON_PRESSED ) {
     click_type = DOUBLE_CLICK;
     while (digitalRead(buttonPin) == BUTTON_PRESSED) ;
@@ -395,7 +432,7 @@ uint8_t bestChannelMatch( uint16_t frequency )
 
 //******************************************************************************
 //* function: graphicScanner
-//*         : scans the 5.8 GHz band in 3 MHz increments and draws a graphical
+//*         : scans the 5.8 GHz band in 5 MHz increments and draws a graphical
 //*         : representation. when the button is pressed the currently
 //*         : scanned frequency is returned.
 //******************************************************************************
@@ -406,20 +443,27 @@ uint16_t graphicScanner( uint16_t frequency ) {
   uint16_t scanFrequency = frequency;
   uint16_t bestFrequency = frequency;
   uint8_t clickType;
-  uint8_t rssiDisplayValue;
+  uint8_t rssiDisplayValue1;
+  uint8_t rssiDisplayValue2;
 
   // Draw screen frame etc
   drawScannerScreen();
 
+  // Cycle through the band in 5MHz steps
   while ((clickType = getClickType(BUTTON_PIN)) == NO_CLICK) {
-    scanFrequency += 3;
-    if (scanFrequency > FREQUENCY_MAX)
-      scanFrequency = FREQUENCY_MIN;
-    setRTC6715Frequency(scanFrequency);
-    delay( RSSI_STABILITY_DELAY_MS );
-    scanRssi = averageAnalogRead(RSSI_PIN);
-    rssiDisplayValue = (scanRssi - 140) / 10;    // Roughly 2 - 46
-    updateScannerScreen(100 - ((FREQUENCY_MAX - scanFrequency) / 3), rssiDisplayValue );
+    for (i = 0; i < 2; i++) {
+      scanFrequency += 5;
+      if (scanFrequency > FREQUENCY_MAX)
+        scanFrequency = FREQUENCY_MIN;
+      setRTC6715Frequency(scanFrequency);
+      delay( RSSI_STABILITY_DELAY_MS );
+      scanRssi = averageAnalogRead(RSSI_PIN);
+      if (!i)
+        rssiDisplayValue1 = (scanRssi - 140) / 20;    // Roughly 1 - 23
+      else
+        rssiDisplayValue2 = (scanRssi - 140) / 20;    // Roughly 1 - 23
+    }
+    updateScannerScreen(100 - ((FREQUENCY_MAX - scanFrequency) / 10), rssiDisplayValue1, rssiDisplayValue2 );
   }
   // Fine tuning
   scanFrequency = scanFrequency - 20;
@@ -807,27 +851,64 @@ void testAlarm( void ) {
 //* Screen functions
 //******************************************************************************
 //******************************************************************************
+//* function: osd
+//******************************************************************************
+void osd( uint8_t command )
+{
+  while (Serial.availableForWrite() < 2) ;
+  Serial.write( CMD_CMD );
+  Serial.write( command );
+}
+
+void osd( uint8_t command, uint8_t param )
+{
+  while (Serial.availableForWrite() < 3) ;
+  Serial.write( CMD_CMD );
+  Serial.write( command );
+  Serial.write( param );
+}
+
+void osd_char( uint8_t token )
+{
+  while (Serial.availableForWrite() == 0) ;
+  Serial.write( token );
+}
+
+void osd_int( uint16_t integer )
+{
+  char buff[17];
+  itoa(integer, buff, 10);
+  while (Serial.availableForWrite() < strlen(buff)) ;
+  Serial.write(buff);
+}
+
+void osd_string( char *str )
+{
+  while (Serial.availableForWrite() < strlen( str )) ;
+  Serial.write( str );
+}
+//******************************************************************************
 //* function: dissolveDisplay
 //*         : fancy graphics stuff that dissolves the screen into black
 //*         : unnecessary, but fun
 //******************************************************************************
 void dissolveDisplay(void)
 {
-  uint8_t x, y, i = 30;
+  uint8_t x, y, i = 10;
   uint16_t j;
   while (i--) {
     if (digitalRead(BUTTON_PIN) == BUTTON_PRESSED) // Return if button pressed
       return;
     j = 250;
     while (j--) {
-      x = random(128);
-      y = random(64);
-      display.drawPixel( x, y, BLACK);
+      x = random(30);
+      y = random(13);
+      osd( CMD_SET_X, x );
+      osd( CMD_SET_Y, y );
+      osd_string(" ");
     }
-    display.display();
   }
-  display.clearDisplay();
-  display.display();
+  osd( CMD_CLEAR_SCREEN );
 }
 
 //******************************************************************************
@@ -839,19 +920,30 @@ void drawStartScreen( void ) {
 
   saveScreenActive = 0;
 
-  display.clearDisplay();
-  display.drawLine(0, 0, 127, 0, WHITE);
-  display.setTextColor(WHITE);
-  display.setCursor(1, 4);
-  display.setTextSize(3);
-  display.print(F("CYCLOP+"));
-  display.drawLine(0, 27, 127, 27, WHITE);
-  display.setCursor(15, 35);
-  display.setTextSize(1);
-  display.print(F(VER_INFO_STRING));
-  display.setCursor(33, 50);
-  display.print(F(VER_DATE_STRING));
-  display.display();
+  osd( CMD_CLEAR_SCREEN );
+  osd( CMD_SET_X, 0 );
+  osd( CMD_SET_Y, 3 );
+  osd_char( OSD_LOGO );
+  osd_char( OSD_LOGO + 1 );
+  osd_char( OSD_LOGO + 2 );
+  osd_char( OSD_LOGO + 3 );
+  osd_char( OSD_LOGO + 4 );
+  osd_char( OSD_LOGO + 5 );
+  osd_char( OSD_LOGO + 6 );
+  osd_char( OSD_LOGO + 7 );
+  osd(CMD_NEWLINE);
+  osd_char( OSD_LOGO + 8 );
+  osd_char( OSD_LOGO + 9 );
+  osd_char( OSD_LOGO + 10 );
+  osd_char( OSD_LOGO + 11);
+  osd_char( OSD_LOGO + 12);
+  osd_char( OSD_LOGO + 13 );
+  osd_char( OSD_LOGO + 14 );
+  osd_char( OSD_LOGO + 15 );
+  osd(CMD_NEWLINE);
+  osd_string(VER_INFO_STRING);
+  osd(CMD_NEWLINE);
+  osd_string(VER_DATE_STRING);
 
   // Return after 2000 ms or when button is pressed
   for (i = 200; i; i--)
@@ -874,35 +966,27 @@ void drawChannelScreen( uint8_t channel, uint16_t rssi) {
 
   saveScreenActive = 0;
 
-  display.clearDisplay();
-  display.setTextColor(WHITE);
-  display.setCursor(10, 0);
-  display.setTextSize(3);
-  display.print(getFrequency(channel));
-  display.setCursor(75, 7);
-  display.setTextSize(2);
-  display.print(F(" MHz"));
-  display.drawLine(0, 24, 127, 24, WHITE);
-  display.setCursor(0, 27);
-  display.setTextSize(1);
-  display.print(F("  Channel    RSSI"));
-  display.setCursor(0, 39);
-  display.setTextSize(2);
-  display.print(F(" "));
-  display.print(F(" "));
-  display.print(shortNameOfChannel(channel, buffer));
-  display.print(F("  "));
-  display.print(rssi);
-  display.setCursor(0, 57);
-  display.setTextSize(1);
-  longNameOfChannel(channel, buffer);
-  i = (21 - strlen(buffer)) / 2;
-  for (; i; i--) {
-    display.print(F(" "));
-  }
-  display.print( buffer );
+  osd(CMD_CLEAR_SCREEN );
+  osd(CMD_SET_X, 0);
+  osd(CMD_SET_Y, 3);
+
+  osd_string(" Frequency: ");
+  osd_int(getFrequency(channel));
+  osd_string(" MHz");
+  osd(CMD_NEWLINE);
+
+  osd_string(" Channel  : ");
+  osd_string(shortNameOfChannel(channel, buffer));
+  osd(CMD_NEWLINE);
+
+  osd_string(" Name     : ");
+  osd_string( longNameOfChannel(channel, buffer));
+  osd(CMD_NEWLINE);
+
+  osd_string(" RSSI     : ");
+  osd_int(rssi);
+
   batteryMeter();
-  display.display();
 }
 
 //******************************************************************************
@@ -911,20 +995,23 @@ void drawChannelScreen( uint8_t channel, uint16_t rssi) {
 void drawAutoScanScreen( void ) {
   saveScreenActive = 0;
 
-  display.clearDisplay();
-  display.setTextColor(WHITE);
-  display.setCursor(10, 0);
-  display.setTextSize(3);
-  display.print(F("SCAN"));
-  display.setCursor(75, 7);
-  display.setTextSize(2);
-  display.print(F(" MHz"));
-  display.drawLine(0, 24, 127, 24, WHITE);
-  display.setCursor(0, 27);
-  display.setTextSize(1);
-  display.print(F("  Channel    RSSI"));
+  osd(CMD_CLEAR_SCREEN );
+  osd(CMD_SET_X, 0);
+  osd(CMD_SET_Y, 3);
+
+  osd_string(" Frequency: ");
+  osd_string(" Scanning...");
+  osd(CMD_NEWLINE);
+
+  osd_string(" Channel  : ");
+  osd(CMD_NEWLINE);
+
+  osd_string(" Name     : ");
+  osd(CMD_NEWLINE);
+
+  osd_string(" RSSI     : ");
+
   batteryMeter();
-  display.display();
 }
 
 //******************************************************************************
@@ -933,44 +1020,71 @@ void drawAutoScanScreen( void ) {
 void drawScannerScreen( void ) {
   saveScreenActive = 0;
 
-  display.clearDisplay();
-  display.drawLine(0, 55, 127, 55, WHITE);
-  display.setTextColor(WHITE);
-  display.setTextSize(1);
-  display.setCursor(0, 57);
-  display.print(F("5.65     5.8     5.95"));
-  updateScannerScreen(0, 0);
+  osd(CMD_CLEAR_SCREEN );
+  osd(CMD_SET_X, 0);
+  osd(CMD_SET_Y, 12);
+  osd_string("5.65         5.80         5.95");
 }
 
 //******************************************************************************
 //* function: updateScannerScreen
-//*         : position = 0 to 99
-//*         : value = 0 to 53
+//*         : position = 0 to 59
+//*         : value1 = 0 to 24
+//*         : value2 = 0 to 24
 //*         : must be fast since there are frequent updates
 //******************************************************************************
-void updateScannerScreen(uint8_t position, uint8_t value ) {
-  // uint8_t i;
-  static uint8_t last_position = 14;
-  static uint8_t last_value = 0;
+void updateScannerScreen(uint8_t position, uint8_t value1, uint8_t value2 ) {
+  uint8_t i;
+  static uint8_t last_position = 0;
+  static uint8_t last_value1 = 0;
+  static uint8_t last_value2 = 0;
+  char barCells[4];
 
   saveScreenActive = 0;
 
-  // The scan graph only uses the 100 positions in the middle of the screen
-  position = position + 14;
-
   // Errase the scan line from the last pass
-  display.drawFastVLine( last_position, 0, 54 - last_value, BLACK );
+  for (i = 0; i < 12; i++) {
+    osd(CMD_SET_X, last_position);
+    osd(CMD_SET_Y, i);
+
+    barCells[0] = value1 >= ((i * 2) + 2);
+    barCells[1] = value2 >= ((i * 2) + 2);
+    barCells[2] = value1 >= ((i * 2) + 1);
+    barCells[3] = value2 >= ((i * 2) + 1);
+
+    if (barCells[0] && barCells[1] && barCells[2] && barCells[4])
+      osd_char(OSD_BAR_1111);
+    else if (!barCells[0] && barCells[1] && barCells[2] && barCells[4])
+      osd_char(OSD_BAR_0111);
+    else if (barCells[0] && !barCells[1] && barCells[2] && barCells[4])
+      osd_char(OSD_BAR_1011);
+    else if (!barCells[0] && !barCells[1] && barCells[2] && barCells[4])
+      osd_char(OSD_BAR_0011);
+    else if (!barCells[0] && !barCells[1] && !barCells[2] && barCells[4])
+      osd_char(OSD_BAR_0001);
+    else if (!barCells[0] && !barCells[1] && barCells[2] && !barCells[4])
+      osd_char(OSD_BAR_0010);
+    else
+      osd_char(OSD_SPACE);
+  }
 
   // Draw the current scan line
-  display.drawFastVLine( position, 0, 54, WHITE );
+  osd(CMD_ENABLE_INVERSE);
+  for (i = 0; i < 12; i++) {
+    osd(CMD_SET_X, position);
+    osd(CMD_SET_Y, i);
+    osd_char(OSD_BAR_1111);
+  }
+  osd(CMD_DISABLE_INVERSE);
 
-  // Save position and value for the next pass
+  // Save position and values for the next pass
   last_position = position;
-  if (value > 53)
-    last_value = 53;
-  else
-    last_value = value;
-  display.display();
+  last_value1 = value1;
+  last_value2 = value2;
+  if (value1 > 24 )
+    value1 = 24;
+  if (value2 > 24 )
+    value2 = 24;
 }
 
 //******************************************************************************
@@ -980,19 +1094,21 @@ void updateScannerScreen(uint8_t position, uint8_t value ) {
 void drawBattery(uint8_t xPos, uint8_t yPos, uint8_t value ) {
   saveScreenActive = 0;
 
-  display.drawRect(3 + xPos,  0 + yPos, 4, 2, WHITE);
-  display.drawRect(0 + xPos, 2 + yPos, 10, 20, WHITE);
-  display.drawRect(2 + xPos,  4 + yPos, 6, 16, BLACK);
-  if (value > 85)
-    display.drawRect(3 + xPos,  5 + yPos, 4, 2, WHITE);
-  if (value > 65)
-    display.drawRect(3 + xPos,  8 + yPos, 4, 2, WHITE);
-  if (value > 45)
-    display.drawRect(3 + xPos,  11 + yPos, 4, 2, WHITE);
-  if (value > 25)
-    display.drawRect(3 + xPos, 14 + yPos, 4, 2, WHITE);
-  if (value > 5)
-    display.drawRect(3 + xPos, 17 + yPos, 4, 2, WHITE);
+  osd(CMD_SET_X, xPos);
+  osd(CMD_SET_Y, yPos);
+  if (value > 87)
+    osd_char(OSD_BATTERY_100);
+  else if (value > 62)
+    osd_char(OSD_BATTERY_75);
+  else if (value > 37)
+    osd_char(OSD_BATTERY_50);
+  else if (value > 12)
+    osd(OSD_BATTERY_25);
+  else
+    osd_char(OSD_BATTERY_0);
+  osd_string(" ");
+  osd_int(value);
+  osd_string("%");
 }
 
 //******************************************************************************
@@ -1003,9 +1119,9 @@ void drawOptionsScreen(uint8_t option ) {
 
   saveScreenActive = 0;
 
-  display.clearDisplay();
-  display.setCursor(0, 0);
-  display.setTextSize(1);
+  osd( CMD_CLEAR_SCREEN );
+  osd( CMD_SET_X, 0 );
+  osd( CMD_SET_Y, 0 );
 
   if (option != 0)
     j = option - 1;
@@ -1017,34 +1133,32 @@ void drawOptionsScreen(uint8_t option ) {
     if (j >= (MAX_OPTIONS + MAX_COMMANDS))
       j = 0;
     if (j == option) {
-      display.setTextColor(BLACK, WHITE);
+      osd( CMD_ENABLE_INVERSE );
     }
     else {
-      display.setTextColor(WHITE, BLACK);
+      osd( CMD_DISABLE_INVERSE );
     }
     switch (j) {
-      case FLIP_SCREEN_OPTION:       display.print(F("Flip Screen     ")); break;
-      case LIPO_2S_METER_OPTION:     display.print(F("LiPo 2s Meter   ")); break;
-      case LIPO_3S_METER_OPTION:     display.print(F("LiPo 3s Meter   ")); break;
-      case BATTERY_ALARM_OPTION:     display.print(F("Battery Alarm   ")); break;
-      case SHOW_STARTSCREEN_OPTION:  display.print(F("Show Startscreen")); break;
-      case SAVE_SCREEN_OPTION:       display.print(F("Screen Saver    ")); break;
-      case RESET_SETTINGS_COMMAND:   display.print(F("Reset Settings  ")); break;
-      case TEST_ALARM_COMMAND:       display.print(F("Test Alarm      ")); break;
-      case EXIT_COMMAND:             display.print(F("Exit            ")); break;
+      case LIPO_2S_METER_OPTION:     osd_string("LiPo 2s Meter   "); break;
+      case LIPO_3S_METER_OPTION:     osd_string("LiPo 3s Meter   "); break;
+      case BATTERY_ALARM_OPTION:     osd_string("Battery Alarm   "); break;
+      case SHOW_STARTSCREEN_OPTION:  osd_string("Show Startscreen"); break;
+      case SAVE_SCREEN_OPTION:       osd_string("Screen Saver    "); break;
+      case RESET_SETTINGS_COMMAND:   osd_string("Reset Settings  "); break;
+      case TEST_ALARM_COMMAND:       osd_string("Test Alarm      "); break;
+      case EXIT_COMMAND:             osd_string("Exit            "); break;
     }
     if (j < MAX_OPTIONS) {
       if (options[j])
-        display.print(F(" ON "));
+        osd_string(" ON ");
       else
-        display.print(F(" OFF"));
+        osd_string(" OFF");
     }
     else
-      display.print("    ");
+      osd_string("    ");
 
-    display.println();
+    osd( CMD_NEWLINE );
   }
-  display.display();
 }
 
 //******************************************************************************
@@ -1052,8 +1166,7 @@ void drawOptionsScreen(uint8_t option ) {
 //******************************************************************************
 void drawEmptyScreen( void)
 {
-  display.clearDisplay();
-  display.display();
+  osd( CMD_CLEAR_SCREEN );
   saveScreenActive = 1;
 }
 

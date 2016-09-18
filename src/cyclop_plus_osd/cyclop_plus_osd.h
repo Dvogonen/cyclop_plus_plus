@@ -33,38 +33,25 @@
 #ifndef cyclop_plus_osd_h
 #define cyclop_plus_osd_h
 
-// The OLED I2C address may be 0x2C or 0x3C. 0x3C is almost always used
-//#define OLED_I2C_ADR      0x2C
-#define OLED_I2C_ADR      0x3C
-
-// SSD1306 and SH1106 OLED displays are supported. Select one.
-#define SSD1306_OLED_DRIVER 
-//#define SH1106_OLED_DRIVER
-
-// This definition is used by the ADAFRUIT library
-#define OLED_128x64_ADAFRUIT_SCREENS
-
 // User Configuration Options
-#define FLIP_SCREEN_OPTION        0
-#define LIPO_2S_METER_OPTION      1
-#define LIPO_3S_METER_OPTION      2
-#define BATTERY_ALARM_OPTION      3
-#define SHOW_STARTSCREEN_OPTION   4
-#define SAVE_SCREEN_OPTION        5
+#define LIPO_2S_METER_OPTION      0
+#define LIPO_3S_METER_OPTION      1
+#define BATTERY_ALARM_OPTION      2
+#define SHOW_STARTSCREEN_OPTION   3
+#define SAVE_SCREEN_OPTION        4
 
-#define FLIP_SCREEN_DEFAULT       1
 #define LIPO_2S_METER_DEFAULT     0
 #define LIPO_3S_METER_DEFAULT     1
 #define BATTERY_ALARM_DEFAULT     1
 #define SHOW_STARTSCREEN_DEFAULT  1
 #define SAVE_SCREEN_DEFAULT       0
 
-#define MAX_OPTIONS               6
+#define MAX_OPTIONS               5
 
 // User Configuration Commands
-#define TEST_ALARM_COMMAND        6
-#define RESET_SETTINGS_COMMAND    7
-#define EXIT_COMMAND              8
+#define TEST_ALARM_COMMAND        5
+#define RESET_SETTINGS_COMMAND    6
+#define EXIT_COMMAND              7
 #define MAX_COMMANDS              3
 
 // Number of lines in configuration menu
