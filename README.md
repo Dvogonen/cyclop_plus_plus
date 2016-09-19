@@ -1,14 +1,14 @@
-#CYCLOP+ with OSD v1.5
+#CYCLOP++ with OSD v2.0
 
 ###Introduction and Functions
-This is the OSD variant of CYCLOP+, the upgrade firmware for the Quanum Cyclops googles.
-* The major functionality of this project (CYCLOP+ with OSD) is to make it possible manually select channels using only the standard button on the receiver of the Quanum Cyclops.
+This is the OSD variant of CYCLOP++, the upgrade firmware for the Quanum Cyclops googles.
+* The major functionality of this project (CYCLOP++ with OSD) is to make it possible manually select channels using only the standard button on the receiver of the Quanum Cyclops.
 * The second major function is to add support for displaying channel and battery information to the video signal by adding a FPV OSD board.
 * The third is to add support for a low battery buzzer.
 
-No hardware alteration is necessary to use CYCLOP+ with OSD. The MinimOSD display modification and buzzer modification are optional.
+No hardware alteration is necessary to use CYCLOP++ with OSD. The MinimOSD display modification and buzzer modification are optional.
 
-This project was forked from v1.4 of the CYCLOP+ with OLED project. The original project uses an extra OLED screen to display information instead of the google screen.
+This project was forked from v1.4 of the CYCLOP+ project. The original project uses an extra OLED screen to display information instead of the google screen.
 
 ###Version History
 * 1.0 Initial dev version, not released
@@ -16,7 +16,7 @@ This project was forked from v1.4 of the CYCLOP+ with OLED project. The original
 * 1.2 Timing optimizations. First released version. 2016-06-20
 * 1.3 Configration options added. Screensaver mode added. Battery meter added. 2016-07-15
 * 1.4 SH1106 OLED support added. Button timing improved. Low battery alarm added. 2016-08-20
-* 1.5 OLED code removed, Max7456 code added. UNDER DEVOLPMENT, NOT YET RELEASED
+* 2.0 OLED code removed, Max7456 code added. UNDER DEVOLPMENT, NOT YET RELEASED
 
 
 #Installation
@@ -42,18 +42,18 @@ An example of a piezo buzzer is this:
 - Enable the Low Battery Alarm option in the configuration menu.
 ![Alarm Speaker Connection](/images/pcb_buzzer.jpg)
 
-###Build CYCLOP+ (optional)
+###Build CYCLOP++ (optional)
 - The project is built using the Arduino development environment. Download the Arduino development environment from www.arduino.cc.
 - Install the development environment.
-- Download the CYCLOP+ source code from GitHub.
+- Download the CYCLOP++ source code from GitHub.
 - Navigate to the cyclop_plus.ino file and open it in the Arduino development environment.
 - Download the two external LCD libraries (Adafruit GFX and Adafruit SSD1306). This is done within the Arduino environment.
 - Select display type by editing Adafruit_SSD1306.h. Look at line 42 in the file.
 - Specify "Arduino Pro or Pro Mini" as board. Then select "Atmega 328 (3.3 volt, 8 MHz)" as processor. These settings are found in the "Tool" menu.
 - Build the project by pressing the v icon in the upper left corner of the Arduino window.
 
-###Load CYCLOP+ with OSD
-- Build CYCLOP+ or download the latest stable version of CYCLOP+.
+###Load CYCLOP++ with OSD
+- Build CYCLOP++ or download the latest stable version of CYCLOP++.
 The firmware file is called cyclop_plus_osd.hex and can be downloaded via this link: https://raw.githubusercontent.com/Dvogonen/cyclop_plus_osd/master/cyclop_plus_osd.hex (right-click and download)
 
 Check the format of the downloaded file. Each line should start with a colon character and only contain letters and numbers like this:
@@ -85,13 +85,13 @@ You find it here: http://blog.zakkemble.co.uk/avrdudess-a-gui-for-avrdude/
 - Start AVRDUDESS.
 Select your ISP programmer in the Programmer box.
 Select the type of MCU (Atmega 328p).
-Select your CYCLOP+ firmware file in the Flash box.
+Select your CYCLOP++ firmware file in the Flash box.
 Select "Intel Hex" as format in the Flash box.
 Execute a write.
 - If everything is set up correctly the LED on the receiver board next to the ISP pin header will light up for a minute or so.
 When it goes black again the programming is done and the board can be mounted in the googles.
 
-###Configure CYCLOP+
+###Configure CYCLOP++
 - Hold down the button during power up to enter the system options screen.
 - Use single click and double click to navigate in the menu.
 - Use long click to select or unselect an option.
@@ -99,7 +99,7 @@ When it goes black again the programming is done and the board can be mounted in
 - Enabling the screen saver option makes the display go out 10 seconds after the last button press. Use this if the display is mounted inside the visor.
 - The settings are saved when the Exit option is selected. All changes are lost if the battery is disconnected before Exit has been selected.
 
-###Use CYCLOP+
+###Use CYCLOP++
 - A single click jumps up in frequency to the closest channel among the 40 available.
 - A double click jumps down in frequency
 - A long click (0.6 - 2 seconds) triggers a autoscan for the best channel, just like a single click does in the original firmware.

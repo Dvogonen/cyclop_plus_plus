@@ -31,7 +31,7 @@
   SOFTWARE.
 ********************************************************************************/
 // Application includes
-#include "cyclop_plus_osd.h"
+#include "cyclop_plus_plus.h"
 
 // Library includes
 #include <avr/pgmspace.h>
@@ -93,6 +93,7 @@
 #define OSD_BAR_1011        0x15
 #define OSD_BAR_0111        0x16
 #define OSD_BAR_1111        0x17
+#define OSD_BAR_EMPTY       0x18
 #define OSD_SPACE           0x20
 #define OSD_LOGO            0x80
 //******************************************************************************
@@ -205,12 +206,12 @@ void setup()
     currentChannel = CHANNEL_MIN;
     resetOptions();
   }
-
+  
   // Start receiver
   setRTC6715Frequency(getFrequency(currentChannel));
 
   // Initialize the display
-  Serial.begin(9600);
+  Serial.begin(115200);
   osd( CMD_CMD, CMD_CLEAR_SCREEN );
 
   // Set Options
@@ -939,6 +940,7 @@ void drawStartScreen( void ) {
   osd( CMD_CLEAR_SCREEN );
   osd( CMD_SET_X, 0 );
   osd( CMD_SET_Y, 0 );
+  osd(CMD_ENABLE_INVERSE);
   osd_char( OSD_LOGO );
   osd_char( OSD_LOGO + 1 );
   osd_char( OSD_LOGO + 2 );
@@ -947,7 +949,8 @@ void drawStartScreen( void ) {
   osd_char( OSD_LOGO + 5 );
   osd_char( OSD_LOGO + 6 );
   osd_char( OSD_LOGO + 7 );
-  osd(CMD_NEWLINE);
+  osd( CMD_SET_X, 0 );
+  osd( CMD_SET_Y, 1 );
   osd_char( OSD_LOGO + 8 );
   osd_char( OSD_LOGO + 9 );
   osd_char( OSD_LOGO + 10 );
@@ -956,16 +959,13 @@ void drawStartScreen( void ) {
   osd_char( OSD_LOGO + 13 );
   osd_char( OSD_LOGO + 14 );
   osd_char( OSD_LOGO + 15 );
-  osd( CMD_SET_X, 9 );
-  osd( CMD_SET_Y, 0 );  
-  osd(CMD_ENABLE_FILL);
-  osd( CMD_SET_X, 9 );
+  osd(CMD_DISABLE_INVERSE);
+  osd( CMD_SET_X, 11 );
   osd( CMD_SET_Y, 0 );  
   osd_string(VER_INFO_STRING);
-  osd( CMD_SET_X, 9 );
+  osd( CMD_SET_X, 14 );
   osd( CMD_SET_Y, 1 );  
   osd_string(VER_DATE_STRING);
-  osd(CMD_DISABLE_FILL);
   batteryMeter( 29, 0 );
   
   // Return after 2000 ms or when button is pressed
@@ -1092,7 +1092,7 @@ void updateScannerScreen(unsigned char position, unsigned char value1, unsigned 
     else if (!barCells[0] && !barCells[1] && barCells[2] && !barCells[4])
       osd_char(OSD_BAR_0010);
     else
-      osd_char(OSD_SPACE);
+      osd_char(OSD_BAR_EMPTY);
   }
   // Draw the current scan line
   osd(CMD_ENABLE_INVERSE);
