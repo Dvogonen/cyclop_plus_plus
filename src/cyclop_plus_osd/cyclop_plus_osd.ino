@@ -1193,10 +1193,10 @@ void drawTopInfoLine( void )
   osd( CMD_CLEAR_SCREEN );
   osd( CMD_SET_Y, 0);
   osd( CMD_SET_X, 15 );
+  osd_char(OSD_MHZ);
   osd_string(shortNameOfChannel(currentChannel, buffer));
   osd_char(OSD_SPACE);
   osd_int(getFrequency(currentChannel));
-  osd_char(OSD_MHZ);
   osd_char(OSD_SPACE);
   osd_char(OSD_ANTENNA);
   osd_int(currentRssi);
@@ -1213,10 +1213,10 @@ void drawBottomInfoLine( void )
   osd( CMD_CLEAR_SCREEN );
   osd( CMD_SET_Y, 12);
   osd( CMD_SET_X, 15 );
+  osd_char(OSD_MHZ);
   osd_string(shortNameOfChannel(currentChannel, buffer));
   osd_char(OSD_SPACE);
   osd_int(getFrequency(currentChannel));
-  osd_char(OSD_MHZ);
   osd_char(OSD_SPACE);
   osd_char(OSD_ANTENNA);
   osd_int(currentRssi);
