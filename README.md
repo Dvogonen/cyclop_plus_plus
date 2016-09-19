@@ -3,10 +3,8 @@
 ###Introduction and Functions
 This is the OSD variant of CYCLOP++, the upgrade firmware for the Quanum Cyclops googles.
 * The major functionality of this project (CYCLOP++ with OSD) is to make it possible manually select channels using only the standard button on the receiver of the Quanum Cyclops.
-* The second major function is to add support for displaying channel and battery information to the video signal by adding a FPV OSD board.
+* The second major function is to add support for displaying channel and battery information to the video signal by adding a minimOSD board.
 * The third is to add support for a low battery buzzer.
-
-No hardware alteration is necessary to use CYCLOP++ with OSD. The MinimOSD display modification and buzzer modification are optional.
 
 This project was forked from v1.4 of the CYCLOP+ project. The original project uses an extra OLED screen to display information instead of the google screen.
 
@@ -20,7 +18,7 @@ This project was forked from v1.4 of the CYCLOP+ project. The original project u
 
 
 #Installation
-###Solder programming pins to the PCB(optional)
+###Solder programming pins to the PCB
 - Solder a 2x3 block of pin headers into the holes for the ICSP port.
 If you do not want to solder anything you can program the board by temporarily pushing programming pins into the PCB ICSP connector holes while you program the board.
 The holes for the ICSP connector is found just to the right of the button switch.
@@ -28,11 +26,17 @@ The pins should point upwards on the same side as the receiver tin can is instal
 ![ICSP pin header](/images/pcb_icsp.jpg)
 The top left pin is VCC. 
  
-###Program and add the MinimOSD circuit (optional)
-These modules are commonly used in RC FPV aircraft to add visual information to the FPV video signal.
-In order to use a MinimOSD in the Cyclops googles, the firmware has to be replaced. The original software will not work in any way at all.
+###Program the MinimOSD board
+These modules are commonly used in RC FPV aircraft to add visual information to the FPV video signal. They are available from multiple sources and are very inexpensive.
+In order to use a MinimOSD in the Cyclops googles, the standard firmware has to be replaced by custom firmware for CYCLOP++ .
+--- INSERT PROGRAM INFO HERE ---
 
-##Attach an alarm buzzer(optional)
+###Install the MinimOSD board
+If you use a Mikro variant of the board, you also need to install a small converter from battery voltage to 5 volts.
+I recommend using the original minimOSD variant, since it has a onboard voltage converter and can use battery power directly.
+Nothing except video in, video out, ground and battery VCC needs to be connected, which makes this an easy modification.
+
+##Attach an alarm buzzer
 This modification is intended to use a 5 volt miniature piezzo buzzer as a low battery alarm. Both active buzzers, and passive piezzo speakers can be used. The later kind is often refered to as "PC Motherboard Speakers".
 An example of a piezo buzzer is this:
 ![Buzzer Example](/images/buzzer.jpg)
@@ -52,9 +56,9 @@ An example of a piezo buzzer is this:
 - Specify "Arduino Pro or Pro Mini" as board. Then select "Atmega 328 (3.3 volt, 8 MHz)" as processor. These settings are found in the "Tool" menu.
 - Build the project by pressing the v icon in the upper left corner of the Arduino window.
 
-###Load CYCLOP++ with OSD
-- Build CYCLOP++ or download the latest stable version of CYCLOP++.
-The firmware file is called cyclop_plus_osd.hex and can be downloaded via this link: https://raw.githubusercontent.com/Dvogonen/cyclop_plus_osd/master/cyclop_plus_osd.hex (right-click and download)
+###Load CYCLOP++
+- Build or download the latest stable version of CYCLOP++.
+The firmware file is called cyclop_plus_plus.hex and can be downloaded via this link: https://raw.githubusercontent.com/Dvogonen/cyclop_plus_osd/master/cyclop_plus_plus.hex (right-click and download)
 
 Check the format of the downloaded file. Each line should start with a colon character and only contain letters and numbers like this:
 
@@ -95,8 +99,7 @@ When it goes black again the programming is done and the board can be mounted in
 - Hold down the button during power up to enter the system options screen.
 - Use single click and double click to navigate in the menu.
 - Use long click to select or unselect an option.
-- Examples of configurable options: Screen flip (up or down), 3s battery meter, 2s battery meter, screen saver, low level battery alarm.
-- Enabling the screen saver option makes the display go out 10 seconds after the last button press. Use this if the display is mounted inside the visor.
+- Examples of configurable options: 3s battery meter, 2s battery meter, screen saver, low level battery alarm, information at top or bottom, video format.
 - The settings are saved when the Exit option is selected. All changes are lost if the battery is disconnected before Exit has been selected.
 
 ###Use CYCLOP++
@@ -106,12 +109,9 @@ When it goes black again the programming is done and the board can be mounted in
 - A long-long click (> 2 seconds) triggers a manual frequency scanner. The receiver will start cycling through all channels quickly. Hold down the button again when the channel you want to use flickers onto the main display.
 
 ###Words of Warning
-Use of the FW is completely on your own risk.
-You have to dismantle the googles to program the receiver with a so called ISP (alternatively called ICSP) programmer.
-It is naturally possible to destroy the receiver electronics if you connect VCC (the +3.3 volt wire coming from the programmer) to the wrong pin.
-Other types of wiring errors will lead to the programmer not working, but will probably not destroy anything.
-Always double check that VCC is connected correctly before you turn on power.
-
+Use of the FW is naturally on your own risk.
+You have to dismantle the googles to program the receiver with a so called ISP (alternatively called ICSP) programmer. 
+It is possible to destroy the receiver electronics by making faulty connections.
 It is possible to "Brick" the processor in your receiver by tampering with the so called processor fuses. There is no need to change any fuses from their original values (0xE2 0xD9 0x07). Leave them alone.
 
 ###License
