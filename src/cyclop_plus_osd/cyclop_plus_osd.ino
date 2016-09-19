@@ -96,39 +96,37 @@
 //******************************************************************************
 //* File scope function declarations
 
-
-uint16_t autoScan( uint16_t frequency );
-uint16_t averageAnalogRead( unsigned char pin );
-void     batteryMeter(unsigned char x, unsigned char y);
-unsigned char  bestChannelMatch( uint16_t frequency );
-void     dissolveDisplay(void);
-void     drawAutoScanScreen(void);
-void     drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value );
-void     drawBottomInfoLine( void );
-void     drawChannelScreen( unsigned char channel, uint16_t rssi);
-void     drawOptionsScreen(unsigned char option );
-void     drawScannerScreen( void );
-void     drawStartScreen(void);
-void     drawTopInfoLine( void );
-unsigned char  getClickType(unsigned char buttonPin);
-uint16_t graphicScanner( uint16_t frequency );
-char    *longNameOfChannel(unsigned char channel, char *name);
-unsigned char  nextChannel( unsigned char channel);
-void     osd( unsigned char command );
-void     osd( unsigned char command, unsigned char param );
-void     osd_char( unsigned char token );
-void     osd_int( uint16_t integer );
-void     osd_string( char *str );
-
-unsigned char  previousChannel( unsigned char channel);
-bool     readEeprom(void);
-void     resetOptions(void);
-char    *shortNameOfChannel(unsigned char channel, char *name);
-void     setRTC6715Frequency(uint16_t frequency);
-void     setOptions( void );
-void     testAlarm( void );
-void     updateScannerScreen(unsigned char position, unsigned char value );
-void     writeEeprom(void);
+unsigned int  autoScan( unsigned int frequency );
+unsigned int  averageAnalogRead( unsigned char pin );
+void          batteryMeter(unsigned char x, unsigned char y);
+unsigned char bestChannelMatch( unsigned int frequency );
+void          dissolveDisplay(void);
+void          drawAutoScanScreen(void);
+void          drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value );
+void          drawBottomInfoLine( void );
+void          drawChannelScreen( unsigned char channel, unsigned int rssi);
+void          drawOptionsScreen(unsigned char option );
+void          drawScannerScreen( void );
+void          drawStartScreen(void);
+void          drawTopInfoLine( void );
+unsigned char getClickType(unsigned char buttonPin);
+unsigned int  graphicScanner( unsigned int frequency );
+char         *longNameOfChannel(unsigned char channel, char *name);
+unsigned char nextChannel( unsigned char channel);
+void          osd( unsigned char command );
+void          osd( unsigned char command, unsigned char param );
+void          osd_char( unsigned char token );
+void          osd_int( unsigned int integer );
+void          osd_string( char *str );
+unsigned char previousChannel( unsigned char channel);
+bool          readEeprom(void);
+void          resetOptions(void);
+char         *shortNameOfChannel(unsigned char channel, char *name);
+void          setRTC6715Frequency(unsigned int frequency);
+void          setOptions( void );
+void          testAlarm( void );
+void          updateScannerScreen(unsigned char position, unsigned char value );
+void          writeEeprom(void);
 
 //******************************************************************************
 //* Positions in the frequency table for the 40 channels
@@ -140,7 +138,7 @@ const unsigned char positions[] PROGMEM = {
   3, 36, 12, 28,  2, 13, 29, 37,  1, 14, 30,  0, 15, 31, 38, 20, 21, 39, 22, 23
 };
 
-uint16_t getPosition( unsigned char channel ) {
+unsigned int getPosition( unsigned char channel ) {
   return pgm_read_byte_near(positions + channel);
 }
 
@@ -149,7 +147,7 @@ uint16_t getPosition( unsigned char channel ) {
 //* Direct access via array operations does not work since data is stored in
 //* flash, not in RAM. Use getFrequency to retrieve data
 
-const uint16_t channelFrequencies[] PROGMEM = {
+const unsigned int channelFrequencies[] PROGMEM = {
   5865, 5845, 5825, 5805, 5785, 5765, 5745, 5725, // Band A - Boscam A
   5733, 5752, 5771, 5790, 5809, 5828, 5847, 5866, // Band B - Boscam B
   5705, 5685, 5665, 5645, 5885, 5905, 5925, 5945, // Band E - DJI
@@ -157,7 +155,7 @@ const uint16_t channelFrequencies[] PROGMEM = {
   5658, 5695, 5732, 5769, 5806, 5843, 5880, 5917  // Band C - Raceband
 };
 
-uint16_t getFrequency( unsigned char channel ) {
+unsigned int getFrequency( unsigned char channel ) {
   return pgm_read_word_near(channelFrequencies + getPosition(channel));
 }
 
@@ -166,7 +164,7 @@ uint16_t getFrequency( unsigned char channel ) {
 unsigned char lastClick = NO_CLICK;
 unsigned char currentChannel = 0;
 unsigned char lastChannel = 0;
-uint16_t      currentRssi = 0;
+unsigned int  currentRssi = 0;
 unsigned char ledState = LED_ON;
 unsigned long saveScreenTimer;
 unsigned long displayUpdateTimer = 0;
@@ -174,8 +172,8 @@ unsigned long eepromSaveTimer = 0;
 unsigned long pulseTimer = 0;
 unsigned long alarmTimer = 0;
 unsigned char alarmSoundOn = 0;
-uint16_t      alarmOnPeriod = 0;
-uint16_t      alarmOffPeriod = 0;
+unsigned int  alarmOnPeriod = 0;
+unsigned int  alarmOffPeriod = 0;
 unsigned char options[MAX_OPTIONS];
 unsigned char saveScreenActive = 0;
 
@@ -364,7 +362,7 @@ bool readEeprom(void) {
 //*         : or LONG_LONG_CLICK
 //******************************************************************************
 unsigned char getClickType(unsigned char buttonPin) {
-  uint16_t timer = 0;
+  unsigned int timer = 0;
   unsigned char click_type = NO_CLICK;
 
   // check if the key has been pressed
@@ -430,7 +428,7 @@ unsigned char previousChannel(unsigned char channel)
 //* function: bestChannelMatch
 //*         : finds the best matching standard channel for a given frequency
 //******************************************************************************
-unsigned char bestChannelMatch( uint16_t frequency )
+unsigned char bestChannelMatch( unsigned int frequency )
 {
   int16_t comp;
   int16_t bestComp = 300;
@@ -454,12 +452,12 @@ unsigned char bestChannelMatch( uint16_t frequency )
 //*         : representation. when the button is pressed the currently
 //*         : scanned frequency is returned.
 //******************************************************************************
-uint16_t graphicScanner( uint16_t frequency ) {
+unsigned int graphicScanner( unsigned int frequency ) {
   unsigned char i;
-  uint16_t scanRssi;
-  uint16_t bestRssi = 0;
-  uint16_t scanFrequency = frequency;
-  uint16_t bestFrequency = frequency;
+  unsigned int scanRssi;
+  unsigned int bestRssi = 0;
+  unsigned int scanFrequency = frequency;
+  unsigned int bestFrequency = frequency;
   unsigned char clickType;
   unsigned char rssiDisplayValue1;
   unsigned char rssiDisplayValue2;
@@ -502,12 +500,12 @@ uint16_t graphicScanner( uint16_t frequency ) {
 //******************************************************************************
 //* function: autoScan
 //******************************************************************************
-uint16_t autoScan( uint16_t frequency ) {
+unsigned int autoScan( unsigned int frequency ) {
   unsigned char i;
-  uint16_t scanRssi = 0;
-  uint16_t bestRssi = 0;
-  uint16_t scanFrequency;
-  uint16_t bestFrequency;
+  unsigned int scanRssi = 0;
+  unsigned int bestRssi = 0;
+  unsigned int scanFrequency;
+  unsigned int bestFrequency;
 
   // Skip 10 MHz forward to avoid detecting the current channel
   scanFrequency = frequency + 10;
@@ -550,9 +548,9 @@ uint16_t autoScan( uint16_t frequency ) {
 //*         : returns an averaged value between (in theory) 0 and 1024
 //*         : this function is called often, so it is speed optimized
 //******************************************************************************
-uint16_t averageAnalogRead( unsigned char pin)
+unsigned int averageAnalogRead( unsigned char pin)
 {
-  uint16_t rssi = 0;
+  unsigned int rssi = 0;
   unsigned char i = 32;
 
   for ( ; i ; i--) {
@@ -613,9 +611,9 @@ char *longNameOfChannel(unsigned char channel, char *name)
 //*         :
 //*  Formula: frequency = ( N*32 + A )*2 + 479
 //******************************************************************************
-uint16_t calcFrequencyData( uint16_t frequency )
+unsigned int calcFrequencyData( unsigned int frequency )
 {
-  uint16_t N;
+  unsigned int N;
   unsigned char A;
   frequency = (frequency - 479) / 2;
   N = frequency / 32;
@@ -635,9 +633,9 @@ uint16_t calcFrequencyData( uint16_t frequency )
 //*         : 13 bits  N-Register Data   LSB first
 //*         : 7  bits  A-Register        LSB first
 //******************************************************************************
-void setRTC6715Frequency(uint16_t frequency)
+void setRTC6715Frequency(unsigned int frequency)
 {
-  uint16_t sRegB;
+  unsigned int sRegB;
   unsigned char i;
 
   sRegB = calcFrequencyData(frequency);
@@ -739,10 +737,10 @@ void spiEnableHigh()
 //******************************************************************************
 void batteryMeter( unsigned char x, unsigned char y )
 {
-  uint16_t voltage;
+  unsigned int voltage;
   unsigned char value;
-  uint16_t minV;
-  uint16_t maxV;
+  unsigned int minV;
+  unsigned int maxV;
 
   // Do no calculations if the meter should not be displayed
   if (!options[LIPO_3S_METER_OPTION] && !options[LIPO_2S_METER_OPTION])
@@ -893,7 +891,7 @@ void osd_char( unsigned char token )
   Serial.write( token );
 }
 
-void osd_int( uint16_t integer )
+void osd_int( unsigned int integer )
 {
   char buff[17];
   itoa(integer, buff, 10);
@@ -914,7 +912,7 @@ void osd_string( char *str )
 void dissolveDisplay(void)
 {
   unsigned char x, y, i = 10;
-  uint16_t j;
+  unsigned int j;
   while (i--) {
     if (digitalRead(BUTTON_PIN) == BUTTON_PRESSED) // Return if button pressed
       return;
@@ -977,7 +975,7 @@ void drawStartScreen( void ) {
 //* function: drawChannelScreen
 //*         : draws the standard screen with channel information
 //******************************************************************************
-void drawChannelScreen( unsigned char channel, uint16_t rssi) {
+void drawChannelScreen( unsigned char channel, unsigned int rssi) {
   char buffer[22];
   unsigned char i;
 
