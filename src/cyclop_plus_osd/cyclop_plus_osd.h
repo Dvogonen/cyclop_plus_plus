@@ -38,24 +38,26 @@
 #define LIPO_3S_METER_OPTION      1
 #define BATTERY_ALARM_OPTION      2
 #define SHOW_STARTSCREEN_OPTION   3
-#define SAVE_SCREEN_OPTION        4
+#define TOP_INFO_LINE_OPTION      4
+#define BOTTOM_INFO_LINE_OPTION   5
 
 #define LIPO_2S_METER_DEFAULT     0
 #define LIPO_3S_METER_DEFAULT     1
 #define BATTERY_ALARM_DEFAULT     1
 #define SHOW_STARTSCREEN_DEFAULT  1
-#define SAVE_SCREEN_DEFAULT       0
+#define TOP_INFO_LINE_DEFAULT     1
+#define BOTTOM_INFO_LINE_DEFAULT  0
 
-#define MAX_OPTIONS               5
+#define MAX_OPTIONS               6
 
 // User Configuration Commands
-#define TEST_ALARM_COMMAND        5
-#define RESET_SETTINGS_COMMAND    6
-#define EXIT_COMMAND              7
+#define TEST_ALARM_COMMAND        6
+#define RESET_SETTINGS_COMMAND    7
+#define EXIT_COMMAND              8
 #define MAX_COMMANDS              3
 
 // Number of lines in configuration menu
-#define MAX_OPTION_LINES          7
+#define MAX_OPTION_LINES          9
 
 // Delay after key click before screen save (in milli seconds)
 #define SAVE_SCREEN_DELAY_MS      10000

@@ -97,36 +97,37 @@
 //* File scope function declarations
 
 
-void     activateScreenSaver( void );
 uint16_t autoScan( uint16_t frequency );
-uint16_t averageAnalogRead( uint8_t pin );
-void     batteryMeter(void);
-uint8_t  bestChannelMatch( uint16_t frequency );
+uint16_t averageAnalogRead( unsigned char pin );
+void     batteryMeter(unsigned char x, unsigned char y);
+unsigned char  bestChannelMatch( uint16_t frequency );
 void     dissolveDisplay(void);
 void     drawAutoScanScreen(void);
-void     drawBattery(uint8_t xPos, uint8_t yPos, uint8_t value );
-void     drawChannelScreen( uint8_t channel, uint16_t rssi);
-void     drawOptionsScreen(uint8_t option );
+void     drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value );
+void     drawBottomInfoLine( void );
+void     drawChannelScreen( unsigned char channel, uint16_t rssi);
+void     drawOptionsScreen(unsigned char option );
 void     drawScannerScreen( void );
 void     drawStartScreen(void);
-uint8_t  getClickType(uint8_t buttonPin);
+void     drawTopInfoLine( void );
+unsigned char  getClickType(unsigned char buttonPin);
 uint16_t graphicScanner( uint16_t frequency );
-char    *longNameOfChannel(uint8_t channel, char *name);
-uint8_t  nextChannel( uint8_t channel);
-void     osd( uint8_t command );
-void     osd( uint8_t command, uint8_t param );
-void     osd_char( uint8_t token );
+char    *longNameOfChannel(unsigned char channel, char *name);
+unsigned char  nextChannel( unsigned char channel);
+void     osd( unsigned char command );
+void     osd( unsigned char command, unsigned char param );
+void     osd_char( unsigned char token );
 void     osd_int( uint16_t integer );
 void     osd_string( char *str );
 
-uint8_t  previousChannel( uint8_t channel);
+unsigned char  previousChannel( unsigned char channel);
 bool     readEeprom(void);
 void     resetOptions(void);
-char    *shortNameOfChannel(uint8_t channel, char *name);
+char    *shortNameOfChannel(unsigned char channel, char *name);
 void     setRTC6715Frequency(uint16_t frequency);
 void     setOptions( void );
 void     testAlarm( void );
-void     updateScannerScreen(uint8_t position, uint8_t value );
+void     updateScannerScreen(unsigned char position, unsigned char value );
 void     writeEeprom(void);
 
 //******************************************************************************
@@ -134,12 +135,12 @@ void     writeEeprom(void);
 //* Direct access via array operations does not work since data is stored in
 //* flash, not in RAM. Use getPosition to retrieve data
 
-const uint8_t positions[] PROGMEM = {
+const unsigned char positions[] PROGMEM = {
   19, 18, 32, 17, 33, 16,  7, 34,  8, 24,  6,  9, 25,  5, 35, 10, 26,  4, 11, 27,
   3, 36, 12, 28,  2, 13, 29, 37,  1, 14, 30,  0, 15, 31, 38, 20, 21, 39, 22, 23
 };
 
-uint16_t getPosition( uint8_t channel ) {
+uint16_t getPosition( unsigned char channel ) {
   return pgm_read_byte_near(positions + channel);
 }
 
@@ -156,27 +157,27 @@ const uint16_t channelFrequencies[] PROGMEM = {
   5658, 5695, 5732, 5769, 5806, 5843, 5880, 5917  // Band C - Raceband
 };
 
-uint16_t getFrequency( uint8_t channel ) {
+uint16_t getFrequency( unsigned char channel ) {
   return pgm_read_word_near(channelFrequencies + getPosition(channel));
 }
 
 //******************************************************************************
 //* Other file scope variables
-uint8_t lastClick = NO_CLICK;
-uint8_t currentChannel = 0;
-uint8_t lastChannel = 0;
-uint16_t currentRssi = 0;
-uint8_t ledState = LED_ON;
+unsigned char lastClick = NO_CLICK;
+unsigned char currentChannel = 0;
+unsigned char lastChannel = 0;
+uint16_t      currentRssi = 0;
+unsigned char ledState = LED_ON;
 unsigned long saveScreenTimer;
 unsigned long displayUpdateTimer = 0;
 unsigned long eepromSaveTimer = 0;
 unsigned long pulseTimer = 0;
 unsigned long alarmTimer = 0;
-uint8_t alarmSoundOn = 0;
-uint16_t alarmOnPeriod = 0;
-uint16_t alarmOffPeriod = 0;
-uint8_t options[MAX_OPTIONS];
-uint8_t saveScreenActive = 0;
+unsigned char alarmSoundOn = 0;
+uint16_t      alarmOnPeriod = 0;
+uint16_t      alarmOffPeriod = 0;
+unsigned char options[MAX_OPTIONS];
+unsigned char saveScreenActive = 0;
 
 //******************************************************************************
 //* function: setup
@@ -271,8 +272,15 @@ void loop()
 
   // Check if the display needs updating
   if ( millis() > displayUpdateTimer ) {
-    if ( options[SAVE_SCREEN_OPTION] && (saveScreenTimer < millis()))
-      activateScreenSaver();
+    if ( saveScreenTimer < millis())
+    {
+      if ( options[TOP_INFO_LINE_OPTION])
+        drawTopInfoLine();
+      if ( options[BOTTOM_INFO_LINE_OPTION])
+        drawBottomInfoLine();
+      if (!options[TOP_INFO_LINE_OPTION] && ! options[BOTTOM_INFO_LINE_OPTION])
+        osd(CMD_CLEAR_SCREEN);
+    }
     else
     {
       currentRssi = averageAnalogRead(RSSI_PIN);
@@ -321,14 +329,15 @@ void resetOptions(void) {
   options[LIPO_3S_METER_OPTION]    = LIPO_3S_METER_DEFAULT;
   options[BATTERY_ALARM_OPTION]    = BATTERY_ALARM_DEFAULT;
   options[SHOW_STARTSCREEN_OPTION] = SHOW_STARTSCREEN_DEFAULT;
-  options[SAVE_SCREEN_OPTION]      = SAVE_SCREEN_DEFAULT;
+  options[TOP_INFO_LINE_OPTION]    = TOP_INFO_LINE_DEFAULT;
+  options[BOTTOM_INFO_LINE_OPTION] = BOTTOM_INFO_LINE_DEFAULT;
 }
 
 //******************************************************************************
 //* function: writeEeprom
 //******************************************************************************
 void writeEeprom(void) {
-  uint8_t i;
+  unsigned char i;
   EEPROM.write(EEPROM_CHANNEL, currentChannel);
   for (i = 0; i < MAX_OPTIONS; i++)
     EEPROM.write(EEPROM_OPTIONS + i, options[i]);
@@ -339,7 +348,7 @@ void writeEeprom(void) {
 //* function: readEeprom
 //******************************************************************************
 bool readEeprom(void) {
-  uint8_t i;
+  unsigned char i;
   if (EEPROM.read(EEPROM_CHECK) != 238)
     return false;
   currentChannel =   EEPROM.read(EEPROM_CHANNEL);
@@ -354,9 +363,9 @@ bool readEeprom(void) {
 //*         : performed NO_CLICK, SINGLE_CLICK, DOUBLE_CLICK, LONG_CLICK
 //*         : or LONG_LONG_CLICK
 //******************************************************************************
-uint8_t getClickType(uint8_t buttonPin) {
+unsigned char getClickType(unsigned char buttonPin) {
   uint16_t timer = 0;
-  uint8_t click_type = NO_CLICK;
+  unsigned char click_type = NO_CLICK;
 
   // check if the key has been pressed
   if (digitalRead(buttonPin) == !BUTTON_PRESSED)
@@ -398,7 +407,7 @@ uint8_t getClickType(uint8_t buttonPin) {
 //******************************************************************************
 //* function: nextChannel
 //******************************************************************************
-uint8_t nextChannel(uint8_t channel)
+unsigned char nextChannel(unsigned char channel)
 {
   if (channel > (CHANNEL_MAX - 1))
     return CHANNEL_MIN;
@@ -409,7 +418,7 @@ uint8_t nextChannel(uint8_t channel)
 //******************************************************************************
 //* function: previousChannel
 //******************************************************************************
-uint8_t previousChannel(uint8_t channel)
+unsigned char previousChannel(unsigned char channel)
 {
   if ((channel > CHANNEL_MAX) || (channel == CHANNEL_MIN))
     return CHANNEL_MAX;
@@ -421,12 +430,12 @@ uint8_t previousChannel(uint8_t channel)
 //* function: bestChannelMatch
 //*         : finds the best matching standard channel for a given frequency
 //******************************************************************************
-uint8_t bestChannelMatch( uint16_t frequency )
+unsigned char bestChannelMatch( uint16_t frequency )
 {
   int16_t comp;
   int16_t bestComp = 300;
-  uint8_t bestChannel = CHANNEL_MIN;
-  uint8_t i;
+  unsigned char bestChannel = CHANNEL_MIN;
+  unsigned char i;
 
   for (i = CHANNEL_MIN; i <= CHANNEL_MAX; i++) {
     comp = abs( (int16_t)getFrequency(i) - (int16_t)frequency );
@@ -446,14 +455,14 @@ uint8_t bestChannelMatch( uint16_t frequency )
 //*         : scanned frequency is returned.
 //******************************************************************************
 uint16_t graphicScanner( uint16_t frequency ) {
-  uint8_t i;
+  unsigned char i;
   uint16_t scanRssi;
   uint16_t bestRssi = 0;
   uint16_t scanFrequency = frequency;
   uint16_t bestFrequency = frequency;
-  uint8_t clickType;
-  uint8_t rssiDisplayValue1;
-  uint8_t rssiDisplayValue2;
+  unsigned char clickType;
+  unsigned char rssiDisplayValue1;
+  unsigned char rssiDisplayValue2;
 
   // Draw screen frame etc
   drawScannerScreen();
@@ -494,7 +503,7 @@ uint16_t graphicScanner( uint16_t frequency ) {
 //* function: autoScan
 //******************************************************************************
 uint16_t autoScan( uint16_t frequency ) {
-  uint8_t i;
+  unsigned char i;
   uint16_t scanRssi = 0;
   uint16_t bestRssi = 0;
   uint16_t scanFrequency;
@@ -541,10 +550,10 @@ uint16_t autoScan( uint16_t frequency ) {
 //*         : returns an averaged value between (in theory) 0 and 1024
 //*         : this function is called often, so it is speed optimized
 //******************************************************************************
-uint16_t averageAnalogRead( uint8_t pin)
+uint16_t averageAnalogRead( unsigned char pin)
 {
   uint16_t rssi = 0;
-  uint8_t i = 32;
+  unsigned char i = 32;
 
   for ( ; i ; i--) {
     rssi += analogRead(pin);
@@ -555,9 +564,9 @@ uint16_t averageAnalogRead( uint8_t pin)
 //******************************************************************************
 //* function: shortNameOfChannel
 //******************************************************************************
-char *shortNameOfChannel(uint8_t channel, char *name)
+char *shortNameOfChannel(unsigned char channel, char *name)
 {
-  uint8_t channelIndex = getPosition(channel);
+  unsigned char channelIndex = getPosition(channel);
   if (channelIndex < 8)
     name[0] = 'A';
   else if (channelIndex < 16)
@@ -576,10 +585,10 @@ char *shortNameOfChannel(uint8_t channel, char *name)
 //******************************************************************************
 //* function: longNameOfChannel
 //******************************************************************************
-char *longNameOfChannel(uint8_t channel, char *name)
+char *longNameOfChannel(unsigned char channel, char *name)
 {
-  uint8_t len;
-  uint8_t channelIndex = getPosition(channel);
+  unsigned char len;
+  unsigned char channelIndex = getPosition(channel);
   if (channelIndex < 8)
     strcpy(name, "Boscam A");
   else if (channelIndex < 16)
@@ -607,7 +616,7 @@ char *longNameOfChannel(uint8_t channel, char *name)
 uint16_t calcFrequencyData( uint16_t frequency )
 {
   uint16_t N;
-  uint8_t A;
+  unsigned char A;
   frequency = (frequency - 479) / 2;
   N = frequency / 32;
   A = frequency % 32;
@@ -629,7 +638,7 @@ uint16_t calcFrequencyData( uint16_t frequency )
 void setRTC6715Frequency(uint16_t frequency)
 {
   uint16_t sRegB;
-  uint8_t i;
+  unsigned char i;
 
   sRegB = calcFrequencyData(frequency);
 
@@ -728,10 +737,10 @@ void spiEnableHigh()
 //*         : max = 4.2v * 2 = 8.4v = 429
 //*         : min = 3.6v * 2 = 7.2v = 367
 //******************************************************************************
-void batteryMeter( void )
+void batteryMeter( unsigned char x, unsigned char y )
 {
   uint16_t voltage;
-  uint8_t value;
+  unsigned char value;
   uint16_t minV;
   uint16_t maxV;
 
@@ -754,7 +763,7 @@ void batteryMeter( void )
   else if (voltage <= minV)
     value = 0;
   else
-    value = (uint8_t)((voltage - minV) / (float)(maxV - minV) * 100.0);
+    value = (unsigned char)((voltage - minV) / (float)(maxV - minV) * 100.0);
 
   // Set alarm periods
   if (value < 5)
@@ -777,7 +786,8 @@ void batteryMeter( void )
     alarmOnPeriod = 0;
     alarmOffPeriod = 0;
   }
-  drawBattery(58, 32, value);
+  drawBattery(x, y, value);
+  //  drawBattery(58, 32, value);
 }
 
 //******************************************************************************
@@ -785,9 +795,9 @@ void batteryMeter( void )
 //******************************************************************************
 void setOptions()
 {
-  uint8_t exitNow = false;
-  uint8_t menuSelection = 0;
-  uint8_t click = NO_CLICK;
+  unsigned char exitNow = false;
+  unsigned char menuSelection = 0;
+  unsigned char click = NO_CLICK;
 
   // Display option screen
   drawOptionsScreen( menuSelection );
@@ -839,7 +849,7 @@ void setOptions()
 //*         : Cycles through alarms, regardless of alarm settings
 //******************************************************************************
 void testAlarm( void ) {
-  uint8_t i;
+  unsigned char i;
 
   for ( i = 0; i < 3; i++) {
     analogWrite( ALARM_PIN, 32 ); delay(ALARM_MIN_ON);
@@ -862,14 +872,14 @@ void testAlarm( void ) {
 //******************************************************************************
 //* function: osd
 //******************************************************************************
-void osd( uint8_t command )
+void osd( unsigned char command )
 {
   while (Serial.availableForWrite() < 2) ;
   Serial.write( CMD_CMD );
   Serial.write( command );
 }
 
-void osd( uint8_t command, uint8_t param )
+void osd( unsigned char command, unsigned char param )
 {
   while (Serial.availableForWrite() < 3) ;
   Serial.write( CMD_CMD );
@@ -877,7 +887,7 @@ void osd( uint8_t command, uint8_t param )
   Serial.write( param );
 }
 
-void osd_char( uint8_t token )
+void osd_char( unsigned char token )
 {
   while (Serial.availableForWrite() == 0) ;
   Serial.write( token );
@@ -893,8 +903,8 @@ void osd_int( uint16_t integer )
 
 void osd_string( char *str )
 {
-  while (Serial.availableForWrite() < strlen( str )) ;
-  Serial.write( str );
+  while (Serial.availableForWrite() < strlen(str)) ;
+  Serial.write(str);
 }
 //******************************************************************************
 //* function: dissolveDisplay
@@ -903,7 +913,7 @@ void osd_string( char *str )
 //******************************************************************************
 void dissolveDisplay(void)
 {
-  uint8_t x, y, i = 10;
+  unsigned char x, y, i = 10;
   uint16_t j;
   while (i--) {
     if (digitalRead(BUTTON_PIN) == BUTTON_PRESSED) // Return if button pressed
@@ -925,9 +935,9 @@ void dissolveDisplay(void)
 //*         : displays a boot image for a short time
 //******************************************************************************
 void drawStartScreen( void ) {
-  uint8_t i;
+  unsigned char i;
 
-   osd( CMD_CLEAR_SCREEN );
+  osd( CMD_CLEAR_SCREEN );
   osd( CMD_SET_X, 0 );
   osd( CMD_SET_Y, 3 );
   osd_char( OSD_LOGO );
@@ -967,9 +977,9 @@ void drawStartScreen( void ) {
 //* function: drawChannelScreen
 //*         : draws the standard screen with channel information
 //******************************************************************************
-void drawChannelScreen( uint8_t channel, uint16_t rssi) {
+void drawChannelScreen( unsigned char channel, uint16_t rssi) {
   char buffer[22];
-  uint8_t i;
+  unsigned char i;
 
   osd(CMD_CLEAR_SCREEN );
   osd(CMD_SET_X, 0);
@@ -981,7 +991,8 @@ void drawChannelScreen( uint8_t channel, uint16_t rssi) {
   osd(CMD_NEWLINE);
 
   osd_string(" Channel  : ");
-  osd_string(shortNameOfChannel(channel, buffer));
+  osd_string(shortNameOfChannel(channel,
+                                buffer));
   osd(CMD_NEWLINE);
 
   osd_string(" Name     : ");
@@ -991,7 +1002,7 @@ void drawChannelScreen( uint8_t channel, uint16_t rssi) {
   osd_string(" RSSI     : ");
   osd_int(rssi);
 
-  batteryMeter();
+  batteryMeter(29, 0);
 }
 
 //******************************************************************************
@@ -1015,7 +1026,7 @@ void drawAutoScanScreen( void ) {
 
   osd_string(" RSSI     : ");
 
-  batteryMeter();
+  batteryMeter(29, 0);
 }
 
 //******************************************************************************
@@ -1036,11 +1047,11 @@ void drawScannerScreen( void ) {
 //*         : value2 = 0 to 24
 //*         : must be fast since there are frequent updates
 //******************************************************************************
-void updateScannerScreen(uint8_t position, uint8_t value1, uint8_t value2 ) {
-  uint8_t i;
-  static uint8_t last_position = 0;
-  static uint8_t last_value1 = 0;
-  static uint8_t last_value2 = 0;
+void updateScannerScreen(unsigned char position, unsigned char value1, unsigned char value2 ) {
+  unsigned char i;
+  static unsigned char last_position = 0;
+  static unsigned char last_value1 = 0;
+  static unsigned char last_value2 = 0;
   char barCells[4];
 
   // Errase the scan line from the last pass
@@ -1092,7 +1103,7 @@ void updateScannerScreen(uint8_t position, uint8_t value1, uint8_t value2 ) {
 //* function: drawBattery
 //*         : value = 0 to 100
 //******************************************************************************
-void drawBattery(uint8_t xPos, uint8_t yPos, uint8_t value ) {
+void drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value ) {
 
   osd(CMD_SET_X, xPos);
   osd(CMD_SET_Y, yPos);
@@ -1114,8 +1125,8 @@ void drawBattery(uint8_t xPos, uint8_t yPos, uint8_t value ) {
 //******************************************************************************
 //* function: drawOptionsScreen
 //******************************************************************************
-void drawOptionsScreen(uint8_t option ) {
-  uint8_t i, j;
+void drawOptionsScreen(unsigned char option ) {
+  unsigned char i, j;
 
   osd( CMD_CLEAR_SCREEN );
   osd( CMD_SET_X, 0 );
@@ -1141,7 +1152,8 @@ void drawOptionsScreen(uint8_t option ) {
       case LIPO_3S_METER_OPTION:     osd_string("LiPo 3s Meter   "); break;
       case BATTERY_ALARM_OPTION:     osd_string("Battery Alarm   "); break;
       case SHOW_STARTSCREEN_OPTION:  osd_string("Show Startscreen"); break;
-      case SAVE_SCREEN_OPTION:       osd_string("Screen Saver    "); break;
+      case TOP_INFO_LINE_OPTION:     osd_string("Top Line Info   "); break;
+      case BOTTOM_INFO_LINE_OPTION:  osd_string("Bottom Line Info"); break;
       case RESET_SETTINGS_COMMAND:   osd_string("Reset Settings  "); break;
       case TEST_ALARM_COMMAND:       osd_string("Test Alarm      "); break;
       case EXIT_COMMAND:             osd_string("Exit            "); break;
@@ -1160,11 +1172,43 @@ void drawOptionsScreen(uint8_t option ) {
 }
 
 //******************************************************************************
-//* function: activateScreenSaver
+//* function: drawTopInfoLine
 //******************************************************************************
-void activateScreenSaver( void)
+void drawTopInfoLine( void )
 {
+  char buffer[3];
+
   osd( CMD_CLEAR_SCREEN );
-  saveScreenActive = 1;
+  osd( CMD_SET_Y, 0);
+  osd( CMD_SET_X, 15 );
+  osd_string(shortNameOfChannel(currentChannel, buffer));
+  osd_char(OSD_SPACE);
+  osd_int(getFrequency(currentChannel));
+  osd_char(OSD_MHZ);
+  osd_char(OSD_SPACE);
+  osd_char(OSD_ANTENNA);
+  osd_int(currentRssi);
+  osd_char(OSD_SPACE);
+  batteryMeter(29, 0);
+}
+//******************************************************************************
+//* function: drawBottomInfoLine
+//******************************************************************************
+void drawBottomInfoLine( void )
+{
+  char buffer[3];
+
+  osd( CMD_CLEAR_SCREEN );
+  osd( CMD_SET_Y, 12);
+  osd( CMD_SET_X, 15 );
+  osd_string(shortNameOfChannel(currentChannel, buffer));
+  osd_char(OSD_SPACE);
+  osd_int(getFrequency(currentChannel));
+  osd_char(OSD_MHZ);
+  osd_char(OSD_SPACE);
+  osd_char(OSD_ANTENNA);
+  osd_int(currentRssi);
+  osd_char(OSD_SPACE);
+  batteryMeter(29, 12);
 }
 
