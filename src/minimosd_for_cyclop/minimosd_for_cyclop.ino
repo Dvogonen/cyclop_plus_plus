@@ -1969,7 +1969,7 @@ void loop() {
       activeCommand = true;
     }
     else {
-      osd->printMax7456Char( fillState ? inChar+0x80 : inChar, curX, curY, blinkState, inverseState );
+      osd->printMax7456Char( fillState && (inChar>31) && (inChar<128) ? inChar+0x80 : inChar, curX, curY, blinkState, inverseState );
       curX++;
       if (curX >= 30) { // 30 columns on screen
         curX = 0;

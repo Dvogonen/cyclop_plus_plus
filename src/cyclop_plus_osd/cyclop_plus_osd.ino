@@ -938,7 +938,7 @@ void drawStartScreen( void ) {
 
   osd( CMD_CLEAR_SCREEN );
   osd( CMD_SET_X, 0 );
-  osd( CMD_SET_Y, 3 );
+  osd( CMD_SET_Y, 0 );
   osd_char( OSD_LOGO );
   osd_char( OSD_LOGO + 1 );
   osd_char( OSD_LOGO + 2 );
@@ -956,13 +956,18 @@ void drawStartScreen( void ) {
   osd_char( OSD_LOGO + 13 );
   osd_char( OSD_LOGO + 14 );
   osd_char( OSD_LOGO + 15 );
+  osd( CMD_SET_X, 9 );
+  osd( CMD_SET_Y, 0 );  
   osd(CMD_ENABLE_FILL);
-  osd(CMD_NEWLINE);
+  osd( CMD_SET_X, 9 );
+  osd( CMD_SET_Y, 0 );  
   osd_string(VER_INFO_STRING);
-  osd(CMD_NEWLINE);
+  osd( CMD_SET_X, 9 );
+  osd( CMD_SET_Y, 1 );  
   osd_string(VER_DATE_STRING);
   osd(CMD_DISABLE_FILL);
-
+  batteryMeter( 29, 0 );
+  
   // Return after 2000 ms or when button is pressed
   for (i = 200; i; i--)
   {
