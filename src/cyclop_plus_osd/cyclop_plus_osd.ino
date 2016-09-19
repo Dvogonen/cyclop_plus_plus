@@ -96,6 +96,8 @@
 //******************************************************************************
 //* File scope function declarations
 
+
+void     activateScreenSaver( void );
 uint16_t autoScan( uint16_t frequency );
 uint16_t averageAnalogRead( uint8_t pin );
 void     batteryMeter(void);
@@ -104,7 +106,6 @@ void     dissolveDisplay(void);
 void     drawAutoScanScreen(void);
 void     drawBattery(uint8_t xPos, uint8_t yPos, uint8_t value );
 void     drawChannelScreen( uint8_t channel, uint16_t rssi);
-void     drawEmptyScreen( void );
 void     drawOptionsScreen(uint8_t option );
 void     drawScannerScreen( void );
 void     drawStartScreen(void);
@@ -175,7 +176,7 @@ uint8_t alarmSoundOn = 0;
 uint16_t alarmOnPeriod = 0;
 uint16_t alarmOffPeriod = 0;
 uint8_t options[MAX_OPTIONS];
-boolean saveScreenActive = 0;
+uint8_t saveScreenActive = 0;
 
 //******************************************************************************
 //* function: setup
@@ -236,6 +237,9 @@ void loop()
     case NO_CLICK: // do nothing
       break;
 
+    case WAKEUP_CLICK: // do nothing
+      break;
+
     case LONG_LONG_CLICK: // graphical band scanner
       currentChannel = bestChannelMatch(graphicScanner(getFrequency(currentChannel)));
       drawChannelScreen(currentChannel, 0);
@@ -250,10 +254,8 @@ void loop()
       break;
 
     case SINGLE_CLICK: // up the frequency
-      if (!( options[SAVE_SCREEN_OPTION] && saveScreenActive )) { // Single click to wake up
-        currentChannel = nextChannel( currentChannel );
-        setRTC6715Frequency(getFrequency(currentChannel));
-      }
+      currentChannel = nextChannel( currentChannel );
+      setRTC6715Frequency(getFrequency(currentChannel));
       drawChannelScreen(currentChannel, 0);
       break;
 
@@ -263,14 +265,14 @@ void loop()
       drawChannelScreen(currentChannel, 0);
       break;
   }
-  // Reset screensaver timer after key click
+  // Reset screensaver timer after each key click
   if  (lastClick != NO_CLICK )
     saveScreenTimer = millis() + SAVE_SCREEN_DELAY_MS;
 
   // Check if the display needs updating
   if ( millis() > displayUpdateTimer ) {
     if ( options[SAVE_SCREEN_OPTION] && (saveScreenTimer < millis()))
-      drawEmptyScreen();
+      activateScreenSaver();
     else
     {
       currentRssi = averageAnalogRead(RSSI_PIN);
@@ -359,6 +361,13 @@ uint8_t getClickType(uint8_t buttonPin) {
   // check if the key has been pressed
   if (digitalRead(buttonPin) == !BUTTON_PRESSED)
     return ( NO_CLICK );
+
+  // If the screen saver is active the key press is just a wakeup call
+  if (saveScreenActive) {
+    saveScreenActive = 0;
+    while (digitalRead(buttonPin) == BUTTON_PRESSED) ;
+    return ( WAKEUP_CLICK );
+  }
 
   while (digitalRead(buttonPin) == BUTTON_PRESSED) {
     timer++;
@@ -918,9 +927,7 @@ void dissolveDisplay(void)
 void drawStartScreen( void ) {
   uint8_t i;
 
-  saveScreenActive = 0;
-
-  osd( CMD_CLEAR_SCREEN );
+   osd( CMD_CLEAR_SCREEN );
   osd( CMD_SET_X, 0 );
   osd( CMD_SET_Y, 3 );
   osd_char( OSD_LOGO );
@@ -964,8 +971,6 @@ void drawChannelScreen( uint8_t channel, uint16_t rssi) {
   char buffer[22];
   uint8_t i;
 
-  saveScreenActive = 0;
-
   osd(CMD_CLEAR_SCREEN );
   osd(CMD_SET_X, 0);
   osd(CMD_SET_Y, 3);
@@ -993,7 +998,6 @@ void drawChannelScreen( uint8_t channel, uint16_t rssi) {
 //* function: drawAutoScanScreen
 //******************************************************************************
 void drawAutoScanScreen( void ) {
-  saveScreenActive = 0;
 
   osd(CMD_CLEAR_SCREEN );
   osd(CMD_SET_X, 0);
@@ -1018,7 +1022,6 @@ void drawAutoScanScreen( void ) {
 //* function: drawScannerScreen
 //******************************************************************************
 void drawScannerScreen( void ) {
-  saveScreenActive = 0;
 
   osd(CMD_CLEAR_SCREEN );
   osd(CMD_SET_X, 0);
@@ -1039,8 +1042,6 @@ void updateScannerScreen(uint8_t position, uint8_t value1, uint8_t value2 ) {
   static uint8_t last_value1 = 0;
   static uint8_t last_value2 = 0;
   char barCells[4];
-
-  saveScreenActive = 0;
 
   // Errase the scan line from the last pass
   for (i = 0; i < 12; i++) {
@@ -1092,7 +1093,6 @@ void updateScannerScreen(uint8_t position, uint8_t value1, uint8_t value2 ) {
 //*         : value = 0 to 100
 //******************************************************************************
 void drawBattery(uint8_t xPos, uint8_t yPos, uint8_t value ) {
-  saveScreenActive = 0;
 
   osd(CMD_SET_X, xPos);
   osd(CMD_SET_Y, yPos);
@@ -1116,8 +1116,6 @@ void drawBattery(uint8_t xPos, uint8_t yPos, uint8_t value ) {
 //******************************************************************************
 void drawOptionsScreen(uint8_t option ) {
   uint8_t i, j;
-
-  saveScreenActive = 0;
 
   osd( CMD_CLEAR_SCREEN );
   osd( CMD_SET_X, 0 );
@@ -1162,9 +1160,9 @@ void drawOptionsScreen(uint8_t option ) {
 }
 
 //******************************************************************************
-//* function: drawEmptyScreen
+//* function: activateScreenSaver
 //******************************************************************************
-void drawEmptyScreen( void)
+void activateScreenSaver( void)
 {
   osd( CMD_CLEAR_SCREEN );
   saveScreenActive = 1;
