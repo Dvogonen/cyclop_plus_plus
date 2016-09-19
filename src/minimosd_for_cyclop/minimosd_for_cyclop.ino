@@ -38,17 +38,17 @@
 #include <SPI.h>
 
 /*******************************************************************************
- Minimosd Display Protocol Definition v1.0
+  Minimosd Display Protocol Definition v1.0
    Formal definition for the display protocol: (Token[Command[Param]])*
    Tokens,  commands and params are all bytes.
-   All tokens except 0 results in the corresponding character in the Max7456 
+   All tokens except 0 results in the corresponding character in the Max7456
    charmap being displayed onscreen  att current position using current paramss.
    The token 0 signals that the next byte is a command.
    Some commands have a single param.
-   Invalid characters are ignored (e.g. unknown commands, params that are out of 
+   Invalid characters are ignored (e.g. unknown commands, params that are out of
    bounds, etc).
  *******************************************************************************
- Protocol Commands:   
+  Protocol Commands:
  *******************************************************************************/
 #define CMD_CMD             0   /* The start command token.                    */
 #define CMD_LOAD_CHARS      1   /* Load charset to EEPROM. Needed only once    */
@@ -59,11 +59,13 @@
 #define CMD_DISABLE_VIDEO   6   /* Hides video in from video out               */
 #define CMD_ENABLE_BLINK    7   /* All upcomming characters will blink         */
 #define CMD_DISABLE_BLINK   8   /* All upcoming characters will be stable      */
-#define CMD_ENABLE_REVERSE  9   /* All upcoming characters are inversed        */
-#define CMD_DISABLE_REVERSE 10  /* All upcoming characters without inverse     */
-#define CMD_NEWLINE         11  /* Moves cursor to start of the next line      */
-#define CMD_SET_X           12  /* Position X cursor (next char is a parameter)*/
-#define CMD_SET_Y           13  /* Position Y cursor (next char is a parameter)*/
+#define CMD_ENABLE_INVERSE  9   /* All upcoming characters are inversed        */
+#define CMD_DISABLE_INVERSE 10  /* All upcoming characters without inverse     */
+#define CMD_ENABLE_FILL     11  /* Fill background of upcoming characters      */
+#define CMD_DISABLE_FILL    12  /* No background fill for upcoming characters  */
+#define CMD_NEWLINE         13  /* Moves cursor to start of the next line      */
+#define CMD_SET_X           14  /* Position X cursor (next char is a parameter)*/
+#define CMD_SET_Y           15  /* Position Y cursor (next char is a parameter)*/
 
 /*******************************************************************************
    Hardware Defines
@@ -1808,12 +1810,13 @@ const char tableOfAllCharacters[13824] PROGMEM = {
 };
 
 /*******************************************************************************
-   max7456 state variables. It is OK to use state values , but do not set them 
+   max7456 state variables. It is OK to use state values , but do not set them
    directly. Use the set functions for manipulating the states.
  *******************************************************************************/
 bool blinkState = false;
-bool osdState = false;
 bool inverseState = false;
+bool fillState = false;
+bool osdState = false;
 bool videoState = false;
 
 uint8_t curX = 0;        // May be directly manipulated
@@ -1845,7 +1848,15 @@ void setOsdState( bool newState ) {
 }
 
 /*******************************************************************************
-   Function: setReverseCharState
+   Function: setFillState
+ *******************************************************************************/
+void setFillState( bool newState ) {
+  if ( newState != fillState) {
+    fillState = newState;
+  }
+}
+/*******************************************************************************
+   Function: setInverseCharState
  *******************************************************************************/
 void setInverseState( bool newState ) {
   if ( newState != inverseState) {
@@ -1935,8 +1946,10 @@ void loop() {
         case CMD_DISABLE_VIDEO:   setVideoState( false ); break;
         case CMD_ENABLE_BLINK:    setBlinkState( true ); break;
         case CMD_DISABLE_BLINK:   setBlinkState( false ); break;
-        case CMD_ENABLE_REVERSE:  setInverseState( true ); break;
-        case CMD_DISABLE_REVERSE: setInverseState( false ); break;
+        case CMD_ENABLE_INVERSE:  setInverseState( true ); break;
+        case CMD_DISABLE_INVERSE: setInverseState( false ); break;
+        case CMD_ENABLE_FILL:     setFillState( true ); break;
+        case CMD_DISABLE_FILL:    setFillState( false ); break;
         case CMD_NEWLINE:         setInverseState( false ); break;
         case CMD_SET_X:           waitingForX = true; break;
         case CMD_SET_Y:           waitingForY = true; break;
@@ -1956,7 +1969,7 @@ void loop() {
       activeCommand = true;
     }
     else {
-      osd->printMax7456Char( inChar, curX, curY, blinkState, inverseState );
+      osd->printMax7456Char( fillState ? inChar+0x80 : inChar, curX, curY, blinkState, inverseState );
       curX++;
       if (curX >= 30) { // 30 columns on screen
         curX = 0;

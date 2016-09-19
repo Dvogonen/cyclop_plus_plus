@@ -62,9 +62,11 @@
 #define CMD_DISABLE_BLINK   8   /* All upcoming characters will be stable      */
 #define CMD_ENABLE_INVERSE  9   /* All upcoming characters are inversed        */
 #define CMD_DISABLE_INVERSE 10  /* All upcoming characters without inverse     */
-#define CMD_NEWLINE         11  /* Moves cursor to start of the next line      */
-#define CMD_SET_X           12  /* Position X cursor (next char is a parameter)*/
-#define CMD_SET_Y           13  /* Position Y cursor (next char is a parameter)*/
+#define CMD_ENABLE_FILL     11  /* Fill background of upcoming characters      */
+#define CMD_DISABLE_FILL    12  /* No background fill for upcoming characters  */
+#define CMD_NEWLINE         13  /* Moves cursor to start of the next line      */
+#define CMD_SET_X           14  /* Position X cursor (next char is a parameter)*/
+#define CMD_SET_Y           15  /* Position Y cursor (next char is a parameter)*/
 
 //******************************************************************************
 //* Character constants
@@ -98,11 +100,11 @@
 
 unsigned int  autoScan( unsigned int frequency );
 unsigned int  averageAnalogRead( unsigned char pin );
-void          batteryMeter(unsigned char x, unsigned char y);
+void          batteryMeter(unsigned char x, unsigned char y, bool showNumbers = false);
 unsigned char bestChannelMatch( unsigned int frequency );
 void          dissolveDisplay(void);
 void          drawAutoScanScreen(void);
-void          drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value );
+void          drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value, bool showNumbers = false );
 void          drawBottomInfoLine( void );
 void          drawChannelScreen( unsigned char channel, unsigned int rssi);
 void          drawOptionsScreen(unsigned char option );
@@ -735,7 +737,7 @@ void spiEnableHigh()
 //*         : max = 4.2v * 2 = 8.4v = 429
 //*         : min = 3.6v * 2 = 7.2v = 367
 //******************************************************************************
-void batteryMeter( unsigned char x, unsigned char y )
+void batteryMeter( unsigned char x, unsigned char y, bool showNumbers )
 {
   unsigned int voltage;
   unsigned char value;
@@ -784,8 +786,7 @@ void batteryMeter( unsigned char x, unsigned char y )
     alarmOnPeriod = 0;
     alarmOffPeriod = 0;
   }
-  drawBattery(x, y, value);
-  //  drawBattery(58, 32, value);
+  drawBattery(x, y, value, showNumbers);
 }
 
 //******************************************************************************
@@ -955,10 +956,12 @@ void drawStartScreen( void ) {
   osd_char( OSD_LOGO + 13 );
   osd_char( OSD_LOGO + 14 );
   osd_char( OSD_LOGO + 15 );
+  osd(CMD_ENABLE_FILL);
   osd(CMD_NEWLINE);
   osd_string(VER_INFO_STRING);
   osd(CMD_NEWLINE);
   osd_string(VER_DATE_STRING);
+  osd(CMD_DISABLE_FILL);
 
   // Return after 2000 ms or when button is pressed
   for (i = 200; i; i--)
@@ -984,21 +987,28 @@ void drawChannelScreen( unsigned char channel, unsigned int rssi) {
   osd(CMD_SET_Y, 3);
 
   osd_string(" Frequency: ");
+  osd(CMD_ENABLE_FILL);
   osd_int(getFrequency(channel));
+  osd(CMD_DISABLE_FILL);
   osd_string(" MHz");
   osd(CMD_NEWLINE);
 
   osd_string(" Channel  : ");
-  osd_string(shortNameOfChannel(channel,
-                                buffer));
+  osd(CMD_ENABLE_FILL);
+  osd_string(shortNameOfChannel(channel, buffer));
+  osd(CMD_DISABLE_FILL);
   osd(CMD_NEWLINE);
 
   osd_string(" Name     : ");
+  osd(CMD_ENABLE_FILL);
   osd_string( longNameOfChannel(channel, buffer));
+  osd(CMD_DISABLE_FILL);
   osd(CMD_NEWLINE);
 
   osd_string(" RSSI     : ");
+  osd(CMD_ENABLE_FILL);
   osd_int(rssi);
+  osd(CMD_DISABLE_FILL);
 
   batteryMeter(29, 0);
 }
@@ -1035,7 +1045,9 @@ void drawScannerScreen( void ) {
   osd(CMD_CLEAR_SCREEN );
   osd(CMD_SET_X, 0);
   osd(CMD_SET_Y, 12);
+  osd(CMD_ENABLE_FILL);
   osd_string("5.65         5.80         5.95");
+  osd(CMD_DISABLE_FILL);
 }
 
 //******************************************************************************
@@ -1077,7 +1089,6 @@ void updateScannerScreen(unsigned char position, unsigned char value1, unsigned 
     else
       osd_char(OSD_SPACE);
   }
-
   // Draw the current scan line
   osd(CMD_ENABLE_INVERSE);
   for (i = 0; i < 12; i++) {
@@ -1101,7 +1112,7 @@ void updateScannerScreen(unsigned char position, unsigned char value1, unsigned 
 //* function: drawBattery
 //*         : value = 0 to 100
 //******************************************************************************
-void drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value ) {
+void drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value, bool showNumbers ) {
 
   osd(CMD_SET_X, xPos);
   osd(CMD_SET_Y, yPos);
@@ -1115,9 +1126,12 @@ void drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value ) {
     osd(OSD_BATTERY_25);
   else
     osd_char(OSD_BATTERY_0);
-  osd_string(" ");
-  osd_int(value);
-  osd_string("%");
+
+  if (showNumbers) {
+    osd_string(" ");
+    osd_int(value);
+    osd_string("%");
+  }
 }
 
 //******************************************************************************
@@ -1128,7 +1142,7 @@ void drawOptionsScreen(unsigned char option ) {
 
   osd( CMD_CLEAR_SCREEN );
   osd( CMD_SET_X, 0 );
-  osd( CMD_SET_Y, 0 );
+  osd( CMD_SET_Y, 2 );
 
   if (option != 0)
     j = option - 1;
