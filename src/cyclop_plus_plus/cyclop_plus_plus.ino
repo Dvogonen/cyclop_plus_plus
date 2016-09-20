@@ -103,7 +103,6 @@ unsigned int  autoScan( unsigned int frequency );
 unsigned int  averageAnalogRead( unsigned char pin );
 void          batteryMeter(unsigned char x, unsigned char y, bool showNumbers = false);
 unsigned char bestChannelMatch( unsigned int frequency );
-void          dissolveDisplay(void);
 void          drawAutoScanScreen(void);
 void          drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value, bool showNumbers = false );
 void          drawBottomInfoLine( void );
@@ -120,7 +119,7 @@ void          osd( unsigned char command );
 void          osd( unsigned char command, unsigned char param );
 void          osd_char( unsigned char token );
 void          osd_int( unsigned int integer );
-void          osd_string( char *str );
+void          osd_string( const char *str );
 unsigned char previousChannel( unsigned char channel);
 bool          readEeprom(void);
 void          resetOptions(void);
@@ -185,6 +184,8 @@ unsigned char saveScreenActive = 0;
 //******************************************************************************
 void setup()
 {
+  unsigned char i;
+
   // initialize LED pin
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LED_ON);
@@ -206,7 +207,7 @@ void setup()
     currentChannel = CHANNEL_MIN;
     resetOptions();
   }
-  
+
   // Start receiver
   setRTC6715Frequency(getFrequency(currentChannel));
 
@@ -219,10 +220,18 @@ void setup()
     setOptions();
     writeEeprom();
   }
-  // Show start screen
-  if (options[SHOW_STARTSCREEN_OPTION])
-    drawStartScreen();
 
+  // Show start screen
+  if (options[SHOW_STARTSCREEN_OPTION]) {
+    drawStartScreen();
+    // Wait 2000 ms. Break if button is pressed
+    for (i = 200; i; i--)
+    {
+      if (digitalRead(BUTTON_PIN) == BUTTON_PRESSED )
+        return;
+      delay(10);
+    }
+  }
   // Wait at least the delay time before entering screen save mode
   saveScreenTimer = millis() + SAVE_SCREEN_DELAY_MS;
 
@@ -289,7 +298,7 @@ void loop()
       displayUpdateTimer = millis() + 1000;
     }
   }
-  // Check if EEPROM needs a save. Reduce EEPROM writes by not saving to often
+  // Check if EEPROM needs a save. Reduce EEPROM writes by not saving too often
   if ((currentChannel != lastChannel) && (millis() > eepromSaveTimer))
   {
     writeEeprom();
@@ -326,12 +335,12 @@ void loop()
 //*         : All options are reset to their default values
 //******************************************************************************
 void resetOptions(void) {
-  options[LIPO_2S_METER_OPTION]    = LIPO_2S_METER_DEFAULT;
-  options[LIPO_3S_METER_OPTION]    = LIPO_3S_METER_DEFAULT;
+  options[LIPO_2S_OPTION]          = LIPO_2S_DEFAULT;
   options[BATTERY_ALARM_OPTION]    = BATTERY_ALARM_DEFAULT;
   options[SHOW_STARTSCREEN_OPTION] = SHOW_STARTSCREEN_DEFAULT;
   options[TOP_INFO_LINE_OPTION]    = TOP_INFO_LINE_DEFAULT;
   options[BOTTOM_INFO_LINE_OPTION] = BOTTOM_INFO_LINE_DEFAULT;
+  options[PAL_VIDEO_OPTION]        = PAL_VIDEO_DEFAULT;
 }
 
 //******************************************************************************
@@ -745,18 +754,15 @@ void batteryMeter( unsigned char x, unsigned char y, bool showNumbers )
   unsigned int minV;
   unsigned int maxV;
 
-  // Do no calculations if the meter should not be displayed
-  if (!options[LIPO_3S_METER_OPTION] && !options[LIPO_2S_METER_OPTION])
-    return;
-
-  if (options[LIPO_3S_METER_OPTION]) {
-    minV = 551;
-    maxV = 643;
-  }
-  if (options[LIPO_2S_METER_OPTION]) {
+  if (options[LIPO_2S_OPTION]) { /* == 2s */
     minV = 367;
     maxV = 429;
   }
+  else {                            /* 3s */
+    minV = 551;
+    maxV = 643;
+  }
+
   voltage = averageAnalogRead(VOLTAGE_METER_PIN);
 
   if (voltage >= maxV)
@@ -901,33 +907,10 @@ void osd_int( unsigned int integer )
   Serial.write(buff);
 }
 
-void osd_string( char *str )
+void osd_string( const char *str )
 {
   while (Serial.availableForWrite() < strlen(str)) ;
   Serial.write(str);
-}
-//******************************************************************************
-//* function: dissolveDisplay
-//*         : fancy graphics stuff that dissolves the screen into black
-//*         : unnecessary, but fun
-//******************************************************************************
-void dissolveDisplay(void)
-{
-  unsigned char x, y, i = 10;
-  unsigned int j;
-  while (i--) {
-    if (digitalRead(BUTTON_PIN) == BUTTON_PRESSED) // Return if button pressed
-      return;
-    j = 250;
-    while (j--) {
-      x = random(30);
-      y = random(13);
-      osd( CMD_SET_X, x );
-      osd( CMD_SET_Y, y );
-      osd_string(" ");
-    }
-  }
-  osd( CMD_CLEAR_SCREEN );
 }
 
 //******************************************************************************
@@ -940,6 +923,8 @@ void drawStartScreen( void ) {
   osd( CMD_CLEAR_SCREEN );
   osd( CMD_SET_X, 0 );
   osd( CMD_SET_Y, 0 );
+  
+  // Display Logo
   osd(CMD_ENABLE_INVERSE);
   osd_char( OSD_LOGO );
   osd_char( OSD_LOGO + 1 );
@@ -960,23 +945,19 @@ void drawStartScreen( void ) {
   osd_char( OSD_LOGO + 14 );
   osd_char( OSD_LOGO + 15 );
   osd(CMD_DISABLE_INVERSE);
-  osd( CMD_SET_X, 11 );
-  osd( CMD_SET_Y, 0 );  
-  osd_string(VER_INFO_STRING);
-  osd( CMD_SET_X, 14 );
-  osd( CMD_SET_Y, 1 );  
-  osd_string(VER_DATE_STRING);
-  batteryMeter( 29, 0 );
   
-  // Return after 2000 ms or when button is pressed
-  for (i = 200; i; i--)
-  {
-    if (digitalRead(BUTTON_PIN) == BUTTON_PRESSED )
-      return;
-    delay(10);
-  }
-  dissolveDisplay();
-  return;
+  // Display version information
+  osd( CMD_SET_X, 11 );
+  osd( CMD_SET_Y, 0 );
+  osd_string(VER_INFO_STRING);
+  
+  // Display version date
+  osd( CMD_SET_X, 14 );
+  osd( CMD_SET_Y, 1 );
+  osd_string(VER_DATE_STRING);
+  
+  // Display battery status
+  batteryMeter( 29, 0 );
 }
 
 //******************************************************************************
@@ -985,61 +966,65 @@ void drawStartScreen( void ) {
 //******************************************************************************
 void drawChannelScreen( unsigned char channel, unsigned int rssi) {
   char buffer[22];
-  unsigned char i;
 
-  osd(CMD_CLEAR_SCREEN );
-  osd(CMD_SET_X, 0);
-  osd(CMD_SET_Y, 3);
+  drawAutoScanScreen();
 
-  osd_string(" Frequency: ");
   osd(CMD_ENABLE_FILL);
+  
+  osd( CMD_SET_X, 13 );
+  osd( CMD_SET_Y, 3 );
   osd_int(getFrequency(channel));
-  osd(CMD_DISABLE_FILL);
-  osd_string(" MHz");
-  osd(CMD_NEWLINE);
+  osd_string( " MHz" );
 
-  osd_string(" Channel  : ");
-  osd(CMD_ENABLE_FILL);
+  osd( CMD_SET_X, 13 );
+  osd( CMD_SET_Y, 4 );
   osd_string(shortNameOfChannel(channel, buffer));
-  osd(CMD_DISABLE_FILL);
-  osd(CMD_NEWLINE);
 
-  osd_string(" Name     : ");
-  osd(CMD_ENABLE_FILL);
+  osd( CMD_SET_X, 13 );
+  osd( CMD_SET_Y, 5 );
   osd_string( longNameOfChannel(channel, buffer));
-  osd(CMD_DISABLE_FILL);
-  osd(CMD_NEWLINE);
 
-  osd_string(" RSSI     : ");
-  osd(CMD_ENABLE_FILL);
+  osd( CMD_SET_X, 13 );
+  osd( CMD_SET_Y, 6 );
   osd_int(rssi);
-  osd(CMD_DISABLE_FILL);
 
-  batteryMeter(29, 0);
+  osd(CMD_DISABLE_FILL);
 }
 
 //******************************************************************************
 //* function: drawAutoScanScreen
 //******************************************************************************
 void drawAutoScanScreen( void ) {
+  char buffer[22];
+  unsigned char i, j;
 
-  osd(CMD_CLEAR_SCREEN );
-  osd(CMD_SET_X, 0);
-  osd(CMD_SET_Y, 3);
+  drawStartScreen();
+  osd(CMD_ENABLE_FILL);
+  
+  for (i = 3; i < 7; i++) {
+    osd( CMD_SET_X, 1 );
+    osd( CMD_SET_Y, i );
+    for (j = 0; i < 28; j++)
+      osd(OSD_SPACE);
+  }
 
+  osd( CMD_SET_X, 1 );
+  osd( CMD_SET_Y, 3 );
   osd_string(" Frequency: ");
-  osd_string(" Scanning...");
-  osd(CMD_NEWLINE);
 
+  osd( CMD_SET_X, 1 );
+  osd( CMD_SET_Y, 4 );
   osd_string(" Channel  : ");
-  osd(CMD_NEWLINE);
 
+  osd( CMD_SET_X, 1 );
+  osd( CMD_SET_Y, 5 );
   osd_string(" Name     : ");
-  osd(CMD_NEWLINE);
 
+  osd( CMD_SET_X, 1 );
+  osd( CMD_SET_Y, 6 );
   osd_string(" RSSI     : ");
-
-  batteryMeter(29, 0);
+  
+  osd(CMD_DISABLE_FILL);
 }
 
 //******************************************************************************
@@ -1050,9 +1035,7 @@ void drawScannerScreen( void ) {
   osd(CMD_CLEAR_SCREEN );
   osd(CMD_SET_X, 0);
   osd(CMD_SET_Y, 12);
-  osd(CMD_ENABLE_FILL);
   osd_string("5.65         5.80         5.95");
-  osd(CMD_DISABLE_FILL);
 }
 
 //******************************************************************************
@@ -1145,9 +1128,8 @@ void drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value, bo
 void drawOptionsScreen(unsigned char option ) {
   unsigned char i, j;
 
-  osd( CMD_CLEAR_SCREEN );
-  osd( CMD_SET_X, 0 );
-  osd( CMD_SET_Y, 2 );
+  drawStartScreen();
+  osd( CMD_SET_Y, 3 );
 
   if (option != 0)
     j = option - 1;
@@ -1156,6 +1138,7 @@ void drawOptionsScreen(unsigned char option ) {
 
   for (i = 0; i < MAX_OPTION_LINES; i++, j++)
   {
+    osd( CMD_SET_X, 1 );
     if (j >= (MAX_OPTIONS + MAX_COMMANDS))
       j = 0;
     if (j == option) {
@@ -1165,27 +1148,33 @@ void drawOptionsScreen(unsigned char option ) {
       osd( CMD_DISABLE_INVERSE );
     }
     switch (j) {
-      case LIPO_2S_METER_OPTION:     osd_string("LiPo 2s Meter   "); break;
-      case LIPO_3S_METER_OPTION:     osd_string("LiPo 3s Meter   "); break;
+      case LIPO_2S_OPTION:           osd_string("Battery Type    "); break;
       case BATTERY_ALARM_OPTION:     osd_string("Battery Alarm   "); break;
       case SHOW_STARTSCREEN_OPTION:  osd_string("Show Startscreen"); break;
       case TOP_INFO_LINE_OPTION:     osd_string("Top Line Info   "); break;
       case BOTTOM_INFO_LINE_OPTION:  osd_string("Bottom Line Info"); break;
+      case PAL_VIDEO_OPTION:         osd_string("Video Format    "); break;
       case RESET_SETTINGS_COMMAND:   osd_string("Reset Settings  "); break;
       case TEST_ALARM_COMMAND:       osd_string("Test Alarm      "); break;
       case EXIT_COMMAND:             osd_string("Exit            "); break;
     }
     if (j < MAX_OPTIONS) {
-      if (options[j])
-        osd_string(" ON ");
-      else
-        osd_string(" OFF");
+      switch (j) {
+        case LIPO_2S_OPTION:           osd_string(options[j] ? "2s"  : "3s"); break;
+        case BATTERY_ALARM_OPTION:     osd_string(options[j] ? "On"  : "Off"); break;
+        case SHOW_STARTSCREEN_OPTION:  osd_string(options[j] ? "Yes" : "No"); break;
+        case TOP_INFO_LINE_OPTION:     osd_string(options[j] ? "On"  : "Off"); break;
+        case BOTTOM_INFO_LINE_OPTION:  osd_string(options[j] ? "On"  : "Off"); break;
+        case PAL_VIDEO_OPTION:         osd_string(options[j] ? "PAL" : "NTSC"); break;
+      }
     }
     else
       osd_string("    ");
 
     osd( CMD_NEWLINE );
   }
+  // Make sure that the inverse is disabled even if option was on last line
+  osd( CMD_DISABLE_INVERSE );
 }
 
 //******************************************************************************

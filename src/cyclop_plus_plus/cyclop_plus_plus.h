@@ -34,19 +34,19 @@
 #define cyclop_plus_osd_h
 
 // User Configuration Options
-#define LIPO_2S_METER_OPTION      0
-#define LIPO_3S_METER_OPTION      1
-#define BATTERY_ALARM_OPTION      2
-#define SHOW_STARTSCREEN_OPTION   3
-#define TOP_INFO_LINE_OPTION      4
-#define BOTTOM_INFO_LINE_OPTION   5
+#define LIPO_2S_OPTION            0
+#define BATTERY_ALARM_OPTION      1
+#define SHOW_STARTSCREEN_OPTION   2
+#define TOP_INFO_LINE_OPTION      3
+#define BOTTOM_INFO_LINE_OPTION   4
+#define PAL_VIDEO_OPTION          5
 
-#define LIPO_2S_METER_DEFAULT     0
-#define LIPO_3S_METER_DEFAULT     1
-#define BATTERY_ALARM_DEFAULT     1
-#define SHOW_STARTSCREEN_DEFAULT  1
-#define TOP_INFO_LINE_DEFAULT     1
-#define BOTTOM_INFO_LINE_DEFAULT  0
+#define LIPO_2S_DEFAULT           0  /* 3s */
+#define BATTERY_ALARM_DEFAULT     1  /* On */
+#define SHOW_STARTSCREEN_DEFAULT  1  /* Yes */
+#define TOP_INFO_LINE_DEFAULT     1  /* On */
+#define BOTTOM_INFO_LINE_DEFAULT  0  /* Off */
+#define PAL_VIDEO_DEFAULT         1  /* PAL */
 
 #define MAX_OPTIONS               6
 
