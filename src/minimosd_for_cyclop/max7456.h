@@ -18,6 +18,8 @@
 
 #include "max7456registers.h"
 
+
+
 /**
  *  @mainpage Max7456 Arduino library
  */
@@ -34,10 +36,13 @@
 class Max7456
 {
 public:
+
+
 	/**
 	 *  Default constructor
 	 */
 	Max7456();
+
 
 	/**
 	 *  Constructor
@@ -45,6 +50,7 @@ public:
 	 *  @param pinCS : pin ~CS of the arduino where max7456 is plugged.
 	 */
 	Max7456(byte pinCS);
+
 
 	/**
 	 *  Initialize communications and device
@@ -62,6 +68,7 @@ public:
 	 * @param blinkDC : blink Duty cycle (see datasheet).
 	 */
 	void setBlinkParams(byte blinkBase, byte blinkDC);
+
 	
 	/**
 	 * Set Horizontal and Vertical display offset
@@ -69,11 +76,13 @@ public:
 	 * @param vertical : the vertical offset in pixels (between 0 and 31).
 	 */	 
 	void setDisplayOffsets(byte horizontal, byte vertical);
+
 	
 	/**
 	 *  Erase Display Memory.
 	 */
 	void clearScreen();
+
 
 	/**
 	 *  Activate osd on screen
@@ -83,6 +92,7 @@ public:
 	 */
 	void activateOSD(bool act = true);
 
+
 	/**
 	 *  Activate input video as a background
 	 *  @param activExtVid :
@@ -90,6 +100,7 @@ public:
 	 *  @li if false external video is not displayed (bakground = grey)
 	 */
 	void activateExternalVideo(bool activExtVid = true);
+
 
 	/**
 	 *  Put a character in the memory character of max7456
@@ -104,6 +115,7 @@ public:
 	 */
 	void sendCharacter(const charact array, byte x, byte y);
 
+
 	/**
 	 *  Get a character from the character memory of max7456
 	 *  @param array : the byte array representing the character (54 bytes long)
@@ -111,6 +123,7 @@ public:
 	 *  @param y : the vertical position of character in character memory
 	 */
 	void getCharacter(charact array, byte x, byte y);
+
 
 	/**
 	 *  Put a string in the display memory of max7456
@@ -125,6 +138,8 @@ public:
 	 *  (' ' being at address 0x00, z being at address 'z'-' ').
 	 */
 	void print(const char string[], byte x, byte y, byte blink = 0,byte inv = 0);
+
+
 
 	/**
 	 *  Put a float in the display memory of max7456
@@ -146,6 +161,7 @@ public:
 	 */
 	void print(double value, byte x, byte y, byte before, byte after, byte blink=0,byte inv=0);
 
+
 	/**
 	 *  Put some characters in the display memory of max7456.
 	 *    The characters are given by their address in the
@@ -162,6 +178,7 @@ public:
 	 *  @endcode
 	 */
 	void printMax7456Chars(byte chars[],byte size,byte x, byte y, byte blink = 0,byte inv = 0);
+
 
 	/**
 	 *  Put one character from the character memory in the display memory of max7456
@@ -182,6 +199,7 @@ public:
 	 */
 	static void printCharacterToSerial(const charact array, bool img = true);
 
+
 	/**
 	 *  Converts a CARACT character to a byte array representation.
 	 *  @param car : the CARACT character
@@ -189,12 +207,14 @@ public:
 	 */
 	static byte* CARACT2ByteArray(const CARACT car);
 
+
 	/**
 	 *  Converts a byte array to a CARACT character.
 	 *  @param array : the byte array representing the character (54 bytes long)
 	 *  @return : the CARACT character
 	 */
 	static CARACT byteArray2CARACT(const charact array);
+
 
 	/**
 	 * Get the ith character from program memory
@@ -208,7 +228,11 @@ public:
 	static void getCARACFromProgMem(const char *table, byte i,charact c);
 
 private:
+
+	byte giveMax7456CharFromAsciiChar(char ascii);
 	static void printPixel(byte value);
+
+	byte _pinCS;
 	bool _isActivatedOsd;
 	//registers (only here for convenience : not forced to be used).
 	REG_VM0   _regVm0;
@@ -216,20 +240,21 @@ private:
 	REG_HOS   _regHos;
 	REG_VOS   _regVos;
 	REG_DMM   _regDmm;
-	REG_DMAH  _regDmah;   // not used yet
-	REG_DMAL  _regDmal;   // not used yet
-	REG_DMDI  _regDmdi;   // not used yet
+	REG_DMAH  _regDmah; // not used yet
+	REG_DMAL  _regDmal; // not used yet
+	REG_DMDI  _regDmdi; // not used yet
 	REG_CMM   _regCmm;
-	REG_CMAH  _regCmah;   // not used yet
-	REG_CMAL  _regCmal;   // not used yet
-	REG_CMDI  _regCmdi;   // not used yet
-	REG_OSDM  _regOsdm;   // not used yet
-	REG_RBN   _regRb[16]; // not used yet
-	REG_OSDBL _regOsdbl;  // not used yet
-	REG_STAT  _regStat;   // not used yet
-	DMDO      _regDmdo;   // not used yet
-	REG_CMDO  _regCmdo;   // not used yet
+	REG_CMAH  _regCmah; // not used yet
+	REG_CMAL  _regCmal; // not used yet
+	REG_CMDI  _regCmdi; // not used yet
+	REG_OSDM  _regOsdm; // not used yet
+	REG_RBN   _regRb[16];  // not used yet
+	REG_OSDBL _regOsdbl; // not used yet
+	REG_STAT  _regStat; // not used yet
+	DMDO  _regDmdo; // not used yet
+	REG_CMDO  _regCmdo; // not used yet
 };
+
 
 #endif /* MAX7456_H_ */
 
