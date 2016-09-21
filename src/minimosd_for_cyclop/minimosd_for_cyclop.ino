@@ -70,9 +70,10 @@
 /*******************************************************************************
    Hardware Defines
  *******************************************************************************/
+#define CS_PIN      6
 #define LED_PIN     13
-#define CS_PIN      10
-#define MAX_LINES   13
+
+#define MAX_LINES   13  // NTSC 13, PAL 16
 
 /*******************************************************************************
    Character bitmaps stored in program memory. Needs more memory than in RAM
