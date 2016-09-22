@@ -1,8 +1,8 @@
 #Build CYCLOP++
 - The project is built using the Arduino development environment. Download the Arduino development environment from www.arduino.cc.
 - Install the development environment.
-- Download the CYCLOP++ source code from GitHub.
-- Navigate to the cyclop_plus_plus.ino file and open it in the Arduino development environment.
+- Download the CYCLOP++ source code from GitHub(https://github.com/Dvogonen/cyclop_plus_plus/archive/master.zip)
+- Unzip the code package and navigate to the cyclop_plus_plus.ino file. Open it in the Arduino development environment.
 - Specify "Arduino Pro or Pro Mini" as board. Then select "Atmega 328 (3.3 volt, 8 MHz)" as processor. These settings are found in the "Tool" menu.
 - Build the project by pressing the v icon in the upper left corner of the Arduino window.
 
