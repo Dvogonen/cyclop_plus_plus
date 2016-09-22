@@ -63,10 +63,10 @@ If you want to build the firmware yourself, you can do so. Here is a link to the
 Keep the wires as short as possible to avoid interference on the video and serial lines.
 * VIN to 2
 * VOUT to 3
-* GND to 6
-* VCC to 5
-* RX to 4 (bottom)
-* TX to 4 (top)
+* GND to 4
+* RX to 5
+* TX to 6
+* VCC to 7
 
 ##Alarm Buzzer
 A 5 volt miniature piezzo buzzer is used as a low battery alarm.
