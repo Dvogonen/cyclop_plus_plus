@@ -5,8 +5,11 @@ To program or "flash" firmware to the boards you must have an ISP programmer for
 The original from Atmel is called AVR ISP mkII and is expensive.
 The design is open source and copies can be had for around 20$.
 But there are several less expensive alternatives.
-USBASP is the cheapest and most widely available alternative (2-3$).
-If you decide to get a USBASP, make sure to select a clone that can be switched between 3.3-volt and 5-volt output (The original ones from MSX Electronica are sadly missing this feature).
+I recommend getting a USBASP, which is the cheapest and most widely available alternative. 
+Clones are 2-3$ on eBay.
+Buy more than one USBASP. Frying programmers is not at all uncommon.
+Make sure to buy USBASPs that can be switched between 3.3-volt and 5-volt output.
+The original ones from MSX Electronica are sadly missing this feature, so they are not an option.
 The CYCLOPS controller should be flashed using 3.3 volts while the MinimOSD is a 5 volt board.
 The voltage is selected by moving a jumper often labled JP1. If there is no jumper on the USBASP, you should not buy it.
 ![USBASP](/images/usbasp_and_adapter.jpg)
@@ -36,7 +39,7 @@ You find it here: http://blog.zakkemble.co.uk/avrdudess-a-gui-for-avrdude/
 - Select voltage. 3.3 volts for CYCLOPS, 5 volts for MinimOSB.
 - Connect the programmer to the ISP contact. The battery should not be connected.
 - Start AVRDUDESS.
-- Select your ISP programmer in the Programmer box.
+- Select your ISP programmer and port in the Programmer box (USBASP and USB)
 - Select the type of MCU (Atmega 328p). The best way of doing this is to press the "Detect" button. If the detection succeds you know that it is possible to talk to the MCU.
 - Select your firmware file in the Flash box.
 - Select "Intel Hex" as format in the Flash box.
