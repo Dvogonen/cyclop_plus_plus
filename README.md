@@ -76,8 +76,8 @@ An example of a piezo buzzer is this:
 
 ![Buzzer Example](/images/buzzer.jpg)
 ####Installation
-- Solder the red wire comming from your buzzer to the solder point marked D6. If your buzzer does not have a red wire instead solder the leg marked with a + to the D6 solder pad.
-- Solder the other (black) wire to a ground point. The legs of the antenna contact as well as the square through hole solder island in the middle of the PCB are ground points.
+- Solder the leg marked by a + or attached to a red wire to the solder point marked D6.
+- Solder the other (black) leg to a ground point. The legs of the antenna contact as well as the square through hole solder island in the middle of the PCB are ground points.
 ![Alarm Speaker Connection](/images/pcb_buzzer.jpg)
 
 ##Configure CYCLOP++
