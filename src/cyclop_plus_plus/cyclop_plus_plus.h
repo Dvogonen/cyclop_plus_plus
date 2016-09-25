@@ -37,15 +37,15 @@
 #define LIPO_2S_OPTION            0
 #define BATTERY_ALARM_OPTION      1
 #define SHOW_STARTSCREEN_OPTION   2
-#define TOP_INFO_LINE_OPTION      3
-#define BOTTOM_INFO_LINE_OPTION   4
+#define INFO_LINE_OPTION          3
+#define INFO_LINE_POS_OPTION      4
 #define PAL_VIDEO_OPTION          5
 
 #define LIPO_2S_DEFAULT           0  /* 3s */
 #define BATTERY_ALARM_DEFAULT     1  /* On */
 #define SHOW_STARTSCREEN_DEFAULT  1  /* Yes */
-#define TOP_INFO_LINE_DEFAULT     1  /* On */
-#define BOTTOM_INFO_LINE_DEFAULT  0  /* Off */
+#define INFO_LINE_DEFAULT         1  /* On */
+#define INFO_LINE_POS_DEFAULT     0  /* Top */
 #define PAL_VIDEO_DEFAULT         1  /* PAL */
 
 #define MAX_OPTIONS               6
@@ -59,8 +59,8 @@
 // Number of lines in configuration menu
 #define MAX_OPTION_LINES          9
 
-// Delay after key click before screen save (in milli seconds)
-#define SAVE_SCREEN_DELAY_MS      10000
+// Minimum time info is shown on screen
+#define FORCED_SCREEN_UPDATE_MS   6000
 
 // Alarm timing constants (in milli seconds)
 #define ALARM_MAX_ON      50

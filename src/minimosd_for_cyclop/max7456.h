@@ -105,15 +105,13 @@ public:
 	/**
 	 *  Put a character in the memory character of max7456
 	 *  @param array : the byte array representing the character (54 bytes long)
-	 *  @param x : the horizontal position of character in memory
-	 *  @param y : the vertical position of character in memory.
+	 *  @param pos : the ascii table char position.
 	 *  @code
 	 *  charact c={0x44,....} //Whatever charact here
-	 *  max.sendCharacter(c,4,5); //put c at 4th line 5th column ie. address 54.
 	 *  max.sendCharacter(c,0x43); //put c in mem at address 43.
 	 *  @endcode
 	 */
-	void sendCharacter(const charact array, byte x, byte y);
+	void sendCharacter(const charact array, byte pos);
 
 
 	/**
@@ -228,8 +226,6 @@ public:
 	static void getCARACFromProgMem(const char *table, byte i,charact c);
 
 private:
-
-	byte giveMax7456CharFromAsciiChar(char ascii);
 	static void printPixel(byte value);
 
 	byte _pinCS;
