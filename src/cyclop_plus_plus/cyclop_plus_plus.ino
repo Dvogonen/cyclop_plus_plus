@@ -215,27 +215,27 @@ void setup()
   // Initialize the display
   Serial.begin(115200);
 
-  // Set Options
+  // Wait for MinimOSD and Set Options
   if (digitalRead(BUTTON_PIN) == BUTTON_PRESSED ) {
+    delay(3500);
     setOptions();
     writeEeprom();
-    osd( CMD_CLEAR_SCREEN );
   }
-  else {  // Wait for OSD to start up
+  else {  // Wait for MinimOSD and show start screen
     delay(3500);
-  }
-
-  // Show start screen
-  if (options[SHOW_STARTSCREEN_OPTION]) {
-    drawStartScreen();
-    // Wait 3000 ms. Break if button is pressed
-    for (i = 300; i; i--)
-    {
-      if (digitalRead(BUTTON_PIN) == BUTTON_PRESSED )
-        return;
-      delay(10);
+    if (options[SHOW_STARTSCREEN_OPTION]) {
+      drawStartScreen();
+      // Wait 3000 ms. Break if button is pressed
+      for (i = 300; i; i--)
+      {
+        if (digitalRead(BUTTON_PIN) == BUTTON_PRESSED )
+          return;
+        delay(10);
+      }
     }
   }
+  osd( CMD_CLEAR_SCREEN );
+
   // Set delay time before entering screen save mode
   forceDisplayTimer = millis() + FORCED_SCREEN_UPDATE_MS;
 }
@@ -493,7 +493,7 @@ unsigned int graphicScanner( unsigned int frequency ) {
       else
         rssiDisplayValue2 = (scanRssi - 140) / 20;    // Roughly 1 - 23
     }
-    updateScannerScreen(100 - ((FREQUENCY_MAX - scanFrequency) / 10), rssiDisplayValue1, rssiDisplayValue2 );
+    updateScannerScreen(29 - ((FREQUENCY_MAX - scanFrequency) / 10), rssiDisplayValue1, rssiDisplayValue2 );
   }
   // Fine tuning
   scanFrequency = scanFrequency - 20;
@@ -580,15 +580,15 @@ char *shortNameOfChannel(unsigned char channel, char *name)
 {
   unsigned char channelIndex = getPosition(channel);
   if (channelIndex < 8)
-    name[0] = 'A';
+    name[0] = 'a';
   else if (channelIndex < 16)
-    name[0] = 'B';
+    name[0] = 'b';
   else if (channelIndex < 24)
-    name[0] = 'E';
+    name[0] = 'e';
   else if (channelIndex < 32)
-    name[0] = 'F';
+    name[0] = 'f';
   else
-    name[0] = 'R';
+    name[0] = 'r';
   name[1] = (channelIndex % 8) + '0' + 1;
   name[2] = 0;
   return name;
@@ -1029,13 +1029,18 @@ void drawAutoScanScreen( void ) {
 //******************************************************************************
 void drawScannerScreen( void ) {
   osd(CMD_SET_X, 0);
+  osd(CMD_SET_Y, 11);
+  for (int i = 0; i < 30 ; i++) {
+    osd_char(OSD_BAR_EMPTY);
+  }
+  osd(CMD_SET_X, 0);
   osd(CMD_SET_Y, 12);
-  osd_string("5.65         5.80         5.95");
+  osd_string("  5.65       5.80       5.95");
 }
 
 //******************************************************************************
 //* function: updateScannerScreen
-//*         : position = 0 to 59
+//*         : position = 0 to 29
 //*         : value1 = 0 to 24
 //*         : value2 = 0 to 24
 //*         : must be fast since there are frequent updates
@@ -1045,40 +1050,43 @@ void updateScannerScreen(unsigned char position, unsigned char value1, unsigned 
   static unsigned char last_position = 0;
   static unsigned char last_value1 = 0;
   static unsigned char last_value2 = 0;
-  char barCells[4];
+  bool barCells[4];
 
-  // Errase the scan line from the last pass
-  for (i = 0; i < 12; i++) {
+  for (i = 0; i < 12; i++)
+  {
+    // Errase the scan line character from last call
     osd(CMD_SET_X, last_position);
-    osd(CMD_SET_Y, i);
+    osd(CMD_SET_Y, 11 - i);
 
-    barCells[0] = value1 >= ((i * 2) + 2);
-    barCells[1] = value2 >= ((i * 2) + 2);
-    barCells[2] = value1 >= ((i * 2) + 1);
-    barCells[3] = value2 >= ((i * 2) + 1);
+    barCells[0] = (last_value1 >= ((i * 2) + 2));
+    barCells[1] = (last_value2 >= ((i * 2) + 2));
+    barCells[2] = (last_value1 >= ((i * 2) + 1));
+    barCells[3] = (last_value2 >= ((i * 2) + 1));
 
-    if (barCells[0] && barCells[1] && barCells[2] && barCells[4])
+    if (barCells[0] && barCells[1] && barCells[2] && barCells[3])
       osd_char(OSD_BAR_1111);
-    else if (!barCells[0] && barCells[1] && barCells[2] && barCells[4])
+    else if ((!barCells[0]) && barCells[1] && barCells[2] && barCells[3])
       osd_char(OSD_BAR_0111);
-    else if (barCells[0] && !barCells[1] && barCells[2] && barCells[4])
+    else if (barCells[0] && (!barCells[1]) && barCells[2] && barCells[3])
       osd_char(OSD_BAR_1011);
-    else if (!barCells[0] && !barCells[1] && barCells[2] && barCells[4])
+    else if ((!barCells[0]) && (!barCells[1]) && barCells[2] && barCells[3])
       osd_char(OSD_BAR_0011);
-    else if (!barCells[0] && !barCells[1] && !barCells[2] && barCells[4])
+    else if ((!barCells[0]) && (!barCells[1]) && (!barCells[2]) && barCells[3])
       osd_char(OSD_BAR_0001);
-    else if (!barCells[0] && !barCells[1] && barCells[2] && !barCells[4])
+    else if ((!barCells[0]) && (!barCells[1]) && barCells[2] && (!barCells[3]))
       osd_char(OSD_BAR_0010);
+    else if (barCells[0] && !barCells[1] && barCells[2] && !barCells[3])
+      osd_char(OSD_BAR_1010);
+    else if (!barCells[0] && barCells[1] && !barCells[2] && barCells[3])
+      osd_char(OSD_BAR_0101);
     else
-      osd_char(i == 12 ? OSD_BAR_EMPTY : ' ');
-  }
-  // Draw the current scan line
-  for (i = 0; i < 12; i++) {
-    osd(CMD_SET_X, position);
-    osd(CMD_SET_Y, i);
-    osd_char(OSD_FILLED);
-  }
+      osd_char(i == 0 ? OSD_BAR_EMPTY : ' ');
 
+    // Draw the current scan line character
+    osd(CMD_SET_X, position);
+    osd(CMD_SET_Y, 11 - i);
+    osd_char(i == 0 ? OSD_FILLED : ' ');
+  }
   // Save position and values for the next pass
   last_position = position;
   last_value1 = value1;
