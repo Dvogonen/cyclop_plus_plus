@@ -1,14 +1,14 @@
 /*******************************************************************************
-  CYCLOP+ with OSD brings manual channel selection and onscreen information to 
+  CYCLOP++ with OSD brings manual channel selection and onscreen information to
   the HobbyKing Quanum Cyclops FPV googles.
 
   The rx5808-pro and rx5808-pro-diversity projects served as a starting
   point for the code base, even if little of the actual code remains.
-  Without those projects CYCLOP+ would not have been created. All possible
+  Without those projects CYCLOP++ would not have been created. All possible
   credit goes to the two mentioned projects and their contributors.
 
-  The OSD_Max7456 library from the night-ghost minimosd-extra project was used
-  as a starting point for the MAX7456 library
+  The max7456 library by theboredengineers with a few changes by Dvogonen is
+  used to control the video circuit.
 
   Copyright (c) 2016 Kjell Kernen (Dvogonen)
 

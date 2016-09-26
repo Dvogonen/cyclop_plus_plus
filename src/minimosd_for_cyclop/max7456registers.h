@@ -1,9 +1,11 @@
-/*
- * max7456Registers.h
+/******************************************************************************
+ * @file
+ * max7456.h
  *
- *  Created on: 13 oct. 2012
- *      Author: Benoit
- */
+ *  Original Author: Benoit, 10 oct. 2012
+ *  Additions made by: Dvogonen, 26 sept. 2016
+ *
+ ******************************************************************************/
 
 #ifndef MAX7456REGISTERS_H_
 #define MAX7456REGISTERS_H_
@@ -76,7 +78,6 @@ union REG_VM0
 	} bits;
 };
 
-
 #define VM1_ADDRESS_WRITE 0x01
 #define VM1_ADDRESS_READ 0x81
 
@@ -92,7 +93,6 @@ union REG_VM1
 	 * @brief access to individual bits*/
 	struct
 	{
-
 		/**@brief Blinking Duty Cycle (On:Off)
 		 * @li b00 (0) = BT:BT
 		 * @li b01 (1) = BT:(2*BT)
@@ -101,7 +101,6 @@ union REG_VM1
 		 */
 		unsigned char blinkingDutyCycle : 2;
 
-
 		/**@brief Blinking Time (BT)
 		 * @li b00 (0) = 2 fields (NTSC = 33ms ; PAL = 40ms)
 		 * @li b01 (1) = 4 fields (NTSC = 67ms ; PAL = 80ms)
@@ -109,7 +108,6 @@ union REG_VM1
 		 * @li b11 (3) = 8 fields (NTSC = 133ms ; PAL = 160ms)
 		 */
 		unsigned char blinkingTime : 2;
-
 
 		/**@brief Background Mode Brightness
 		 * @li b000 (0) = 0%
@@ -162,7 +160,6 @@ union REG_HOS
 
 	} bits;
 };
-
 
 #define VOS_ADDRESS_WRITE 0x03
 #define VOS_ADDRESS_READ 0x83
@@ -264,11 +261,8 @@ union REG_DMM
 		/**@brief Don't care*/
 		unsigned char unsused : 1;
 
-
-
 	} bits;
 };
-
 
 #define DMAH_ADDRESS_WRITE 0x05
 #define DMAH_ADDRESS_READ 0x85
@@ -293,11 +287,9 @@ union REG_DMAH
 	} bits;
 };
 
-
 #define DMAL_ADDRESS_WRITE 0x06
 #define DMAL_ADDRESS_READ 0x86
 typedef unsigned char REG_DMAL;
-
 
 #define DMDI_ADDRESS_WRITE 0x07
 #define DMDI_ADDRESS_READ 0x87
@@ -337,7 +329,6 @@ union REG_CMDI
 	 * @brief access to individual bits*/
 	struct
 	{
-
 		/**@brief value of the right most pixel*/
 		unsigned char rightMostPixel : 2;
 
@@ -352,7 +343,6 @@ union REG_CMDI
 
 	} bits;
 };
-
 
 #define OSDM_ADDRESS_WRITE 0x0C
 #define OSDM_ADDRESS_READ 0x8C
@@ -380,7 +370,6 @@ union REG_OSDM
 		 */
 		unsigned char osdInsertionMuxSwitchingTime : 3;
 
-
 		/**@brief OSD Rise And Fall Time
 		 * @li b000 (0) : 20ns (maximum sharpness/maximum crosscolor artifacts )
 		 * @li b001 (1) : 30ns
@@ -391,13 +380,11 @@ union REG_OSDM
 		 */
 		unsigned char osdRiseAndFallTime : 3;
 
-
 		/**@brief don't care*/
 		unsigned char unused : 2;
 
 	} bits;
 };
-
 
 #define RB0_ADDRESS_WRITE 0x10
 #define RB0_ADDRESS_READ 0x90
@@ -562,7 +549,6 @@ union REG_STAT
 	} bits;
 };
 
-
 #define DMDO_ADDRESS_READ 0xB0
 
 /**@typedef DMDO
@@ -595,32 +581,25 @@ union REG_CMDO
 	} bits;
 };
 
-
-
-
 /**\def COLOR_BLACK
  * \brief Black value for a pixel (2bits)
  */
 #define COLOR_BLACK       0
-
 
 /**\def COLOR_WHITE
  * \brief White value for a pixel (2bits)
  */
 #define COLOR_WHITE       2
 
-
 /**\def COLOR_TRANSPARENT
  * \brief Transparent value for a pixel (2bits)
  */
 #define COLOR_TRANSPARENT 1
 
-
 /**\def COLOR_GREY
  * \brief Grey value for a pixel (2bits)
  */
 #define COLOR_GREY COLOR_TRANSPARENT
-
 
 /**@struct PIXEL
  * @brief represent a 4-pixels value
@@ -633,11 +612,8 @@ struct PIXEL
 	byte pix2 : 2;
 	/**@brief 2nd pixel*/
 	byte pix1 : 2;
-
-
 	/**@brief 1st pixel*/
 	byte pix0 : 2;
-
 };
 
 /**@union LINE
@@ -650,7 +626,6 @@ union LINE
 	/**@brief individual 4-pixels access*/
 	struct PIXEL pixels[3];
 };
-
 
 /**
  * @union CARACT
@@ -665,7 +640,6 @@ union CARACT
 	union LINE line[18];
 };
 
-
 enum{
 _BT_BT=0,
 _BT_2BT,
@@ -679,6 +653,5 @@ _4fields,
 _6fields,
 _8fields
 };
-
 
 #endif /* MAX7456REGISTERS_H_ */
