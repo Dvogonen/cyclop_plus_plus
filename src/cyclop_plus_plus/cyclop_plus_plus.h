@@ -34,14 +34,14 @@
 #define cyclop_plus_osd_h
 
 // User Configuration Options
-#define LIPO_2S_OPTION            0
+#define BATTERY_TYPE_OPTION       0
 #define BATTERY_ALARM_OPTION      1
 #define SHOW_STARTSCREEN_OPTION   2
 #define INFO_LINE_OPTION          3
 #define INFO_LINE_POS_OPTION      4
 #define PAL_VIDEO_OPTION          5
 
-#define LIPO_2S_DEFAULT           0  /* 3s */
+#define BATTERY_TYPE_DEFAULT      0  /* 3s */
 #define BATTERY_ALARM_DEFAULT     1  /* On */
 #define SHOW_STARTSCREEN_DEFAULT  1  /* Yes */
 #define INFO_LINE_DEFAULT         1  /* On */

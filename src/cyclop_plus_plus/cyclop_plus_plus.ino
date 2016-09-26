@@ -337,7 +337,7 @@ void loop()
 //*         : All options are reset to their default values
 //******************************************************************************
 void resetOptions(void) {
-  options[LIPO_2S_OPTION]          = LIPO_2S_DEFAULT;
+  options[BATTERY_TYPE_OPTION]     = BATTERY_TYPE_DEFAULT;
   options[BATTERY_ALARM_OPTION]    = BATTERY_ALARM_DEFAULT;
   options[SHOW_STARTSCREEN_OPTION] = SHOW_STARTSCREEN_DEFAULT;
   options[INFO_LINE_OPTION]        = INFO_LINE_DEFAULT;
@@ -756,7 +756,7 @@ void batteryMeter( unsigned char x, unsigned char y, bool showNumbers )
   unsigned int minV;
   unsigned int maxV;
 
-  if (options[LIPO_2S_OPTION]) { /* == 2s */
+  if (options[BATTERY_TYPE_OPTION]) { /* == 2s */
     minV = 367;
     maxV = 429;
   }
@@ -1142,7 +1142,7 @@ void drawOptionsScreen(unsigned char option ) {
       osd( CMD_DISABLE_INVERSE );
     }
     switch (j) {
-      case LIPO_2S_OPTION:           osd_string("Battery Type       "); break;
+      case BATTERY_TYPE_OPTION:      osd_string("Battery Type       "); break;
       case BATTERY_ALARM_OPTION:     osd_string("Battery Alarm      "); break;
       case SHOW_STARTSCREEN_OPTION:  osd_string("Show Startscreen   "); break;
       case INFO_LINE_OPTION:         osd_string("Show Info Line     "); break;
@@ -1154,7 +1154,7 @@ void drawOptionsScreen(unsigned char option ) {
     }
     if (j < MAX_OPTIONS) {
       switch (j) {
-        case LIPO_2S_OPTION:          osd_string(options[j] ? "2s LiPo" : "3s LiPo"); break;
+        case BATTERY_TYPE_OPTION:     osd_string(options[j] ? "2s LiPo" : "3s LiPo"); break;
         case BATTERY_ALARM_OPTION:    osd_string(options[j] ? "yes    " : "no     "); break;
         case SHOW_STARTSCREEN_OPTION: osd_string(options[j] ? "yes    " : "no     "); break;
         case INFO_LINE_OPTION:        osd_string(options[j] ? "yes    " : "no     "); break;
