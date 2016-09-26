@@ -3,7 +3,7 @@
 #include <SPI.h>
 
 /******************************************************************************
-   Function: Max7456::Max7456
+ * Function: Max7456::Max7456
  ******************************************************************************/
 Max7456::Max7456(byte pinCS)
 {
@@ -11,7 +11,7 @@ Max7456::Max7456(byte pinCS)
 }
 
 /******************************************************************************
-   Function: Max7456::setBlinkParams
+ * Function: Max7456::setBlinkParams
  ******************************************************************************/
 void Max7456::setBlinkParams(byte blinkBase, byte blinkDC)
 {
@@ -24,7 +24,7 @@ void Max7456::setBlinkParams(byte blinkBase, byte blinkDC)
 }
 
 /******************************************************************************
-   Function: Max7456::setDisplayOffsets
+ * Function: Max7456::setDisplayOffsets
  ******************************************************************************/
 void Max7456::setDisplayOffsets(byte horizontal, byte vertical)
 {
@@ -45,116 +45,107 @@ void Max7456::setDisplayOffsets(byte horizontal, byte vertical)
 }
 
 /******************************************************************************
-   Function: Max7456::Max7456
+ * Function: Max7456::Max7456
  ******************************************************************************/
 Max7456::Max7456()
 {
 }
 
 /******************************************************************************
-   Function: Max7456::sendCharacter
+ * Function: Max7456::sendCharacter
  ******************************************************************************/
 void Max7456::sendCharacter(const charact chara, byte pos)
 {
-  // OSD must be disabled during character transfer
-  bool reActivateOSD = _isActivatedOsd;
   activateOSD(false);
-
+  //datasheet p38
   digitalWrite(_pinCS, LOW);
   SPI.transfer(CMAH_ADDRESS_WRITE);
   SPI.transfer(pos);
 
-  for (byte i = 0 ; i < 54 ; i++) {
+  for (byte i = 0 ; i < 54 ; i++)
+  {
     SPI.transfer(CMAL_ADDRESS_WRITE);
     SPI.transfer(i);
     SPI.transfer(CMDI_ADDRESS_WRITE);
     SPI.transfer(chara[i]);
   }
-  //Write the NVM array
-  _regCmm = 0xA0;
+
+  _regCmm = 0xA0; //To write the NVM array
   SPI.transfer(CMM_ADDRESS_WRITE);
   SPI.transfer(_regCmm);
-
-  //Wait until STAT[5] is good
+  //while STAT[5] is not good, we wait.
   _regStat.bits.characterMemoryStatus = 1;
-  while (  _regStat.bits.characterMemoryStatus == 1) {
+  while (  _regStat.bits.characterMemoryStatus == 1)
+  {
     SPI.transfer(STAT_ADDRESS_READ);
     _regStat.whole = SPI.transfer(0x00);
   }
   digitalWrite(_pinCS, HIGH);
-
-  // Restore OSD state
-  if (reActivateOSD) {
-    activateOSD(true);
-  }
 }
 
 /******************************************************************************
-   Function: Max7456::getCharacter
+ * Function: Max7456::getCharacter
  ******************************************************************************/
 void Max7456::getCharacter(charact chara, byte x, byte y)
 {
   byte charAddress;
 
-  // OSD must be disabled during character transfer
-  bool reActivateOSD = _isActivatedOsd;
-  activateOSD(false);
-
-  if (y <= 0) {
+  if (y <= 0)
     charAddress = x;
-  }
-  else {
+  else
     charAddress = x + y * 16;
-  }
+
+  activateOSD(false);
+  //datasheet p38
   digitalWrite(_pinCS, LOW);
 
   SPI.transfer(CMAH_ADDRESS_WRITE);
   SPI.transfer(charAddress);
 
-  // Read from the NVM array
-  _regCmm = 0x50;
+  _regCmm = 0x50; //To read from the NVM array
   SPI.transfer(CMM_ADDRESS_WRITE);
   SPI.transfer(_regCmm);
 
-  for (byte i = 0 ; i < 54 ; i++) {
+  for (byte i = 0 ; i < 54 ; i++)
+  {
     SPI.transfer(CMAL_ADDRESS_WRITE);
     SPI.transfer(i);
 
-    // Read from device through spi
-    SPI.transfer(CMDO_ADDRESS_READ);
+    SPI.transfer(CMDO_ADDRESS_READ); //read from device through spi
     chara[i] = SPI.transfer(0x00);
   }
   digitalWrite(_pinCS, HIGH);
-
-  // Restore OSD state
-  if (reActivateOSD)
-    activateOSD(true);
 }
-
 /******************************************************************************
-   Function: Max7456::printCharacterToSerial
+ * Function: Max7456::printCharacterToSerial
  ******************************************************************************/
 void Max7456::printCharacterToSerial(const charact array, bool img)
 {
-  if (img) {
+  if (img)
+  {
     CARACT car ;
     car = Max7456::byteArray2CARACT(array);
 
     Serial.println("------------");
-    for (int i = 0 ; i < 18 ; i++) {
-      for (int j = 0 ; j < 3 ; j++) {
+    for (int i = 0 ; i < 18 ; i++)
+    {
+      for (int j = 0 ; j < 3 ; j++)
+      {
         printPixel(car.line[i].pixels[j].pix0);
         printPixel(car.line[i].pixels[j].pix1);
         printPixel(car.line[i].pixels[j].pix2);
         printPixel(car.line[i].pixels[j].pix3);
       }
+
       Serial.println("");
     }
     Serial.println("------------");
   }
-  else {
+  else
+  {
     Serial.print("{");
-    for (unsigned int i = 0 ; i < 53 ; i++) {
+    for (unsigned int i = 0 ; i < 53 ; i++)
+    {
       Serial.print("0x");
       Serial.print(String(array[i], HEX));
       Serial.print(", ");
@@ -166,7 +157,7 @@ void Max7456::printCharacterToSerial(const charact array, bool img)
 }
 
 /******************************************************************************
-   Function: Max7456::Max7456
+ * Function: Max7456::Max7456
  ******************************************************************************/
 void Max7456::printPixel(byte value)
 {
@@ -185,12 +176,12 @@ void Max7456::printPixel(byte value)
 }
 
 /******************************************************************************
-   Function: Max7456::print
+ * Function: Max7456::print
  ******************************************************************************/
 void Max7456::print(const char string[], byte x, byte y, byte blink, byte inv)
 {
-  char  currentChar;
-  byte  size;
+  char          currentChar;
+  byte          size;
   byte *chars = NULL;
 
   if (!string) return;
@@ -198,21 +189,22 @@ void Max7456::print(const char string[], byte x, byte y, byte blink, byte inv)
   size = 0;
   currentChar = string[0];
 
-  while (currentChar != '\0') {
+  while (currentChar != '\0')
+  {
     currentChar = string[++size];
   }
+
   chars = (byte*) malloc(size * sizeof(byte));
 
-  for (byte i = 0 ; i < size ; i++) {
+  for (byte i = 0 ; i < size ; i++)
+  {
     chars[i] = string[i];
   }
+
   printMax7456Chars(chars, size, x,  y,  blink , inv );
   free(chars);
 }
 
-/******************************************************************************
-   Function: Max7456::printMax7456Char
- ******************************************************************************/
 void Max7456::printMax7456Char(const byte address, byte x, byte y, byte blink, byte inv)
 {
   byte ad = address;
@@ -220,7 +212,7 @@ void Max7456::printMax7456Char(const byte address, byte x, byte y, byte blink, b
 }
 
 /******************************************************************************
-   Function: Max7456::printMax7456Chars
+ * Function: Max7456::printMax7456Chars
  ******************************************************************************/
 void Max7456::printMax7456Chars(byte chars[], byte size, byte x, byte y, byte blink , byte inv )
 {
@@ -243,15 +235,15 @@ void Max7456::printMax7456Chars(byte chars[], byte size, byte x, byte y, byte bl
   SPI.transfer(DMM_ADDRESS_WRITE);
   SPI.transfer(_regDmm.whole);
 
-  // set start address high
-  SPI.transfer(DMAH_ADDRESS_WRITE);
+  SPI.transfer(DMAH_ADDRESS_WRITE); // set start address high
   SPI.transfer(posAddressHI);
 
-  // set start address low
-  SPI.transfer(DMAL_ADDRESS_WRITE);
+  SPI.transfer(DMAL_ADDRESS_WRITE); // set start address low
   SPI.transfer(posAddressLO);
 
-  for (int i = 0; i < size ; i++) {
+
+  for (int i = 0; i < size ; i++)
+  {
     currentCharMax7456 = chars[i];
     SPI.transfer(DMDI_ADDRESS_WRITE);
     SPI.transfer(currentCharMax7456);
@@ -259,12 +251,16 @@ void Max7456::printMax7456Chars(byte chars[], byte size, byte x, byte y, byte bl
   //end character (we're done).
   SPI.transfer(DMDI_ADDRESS_WRITE);
   SPI.transfer(0xff);
-
+  /*
+  	_regVm0.bits.
+  	SPI.transfer(VM0_ADDRESS_WRITE);
+  	SPI.transfer(0x4c);
+  */
   digitalWrite(_pinCS, HIGH);
 }
 
 /******************************************************************************
-   Function: Max7456::print
+ * Function: Max7456::print
  ******************************************************************************/
 
 void Max7456::print(double value, byte x, byte y, byte before, byte after, byte blink, byte inv)
@@ -272,89 +268,109 @@ void Max7456::print(double value, byte x, byte y, byte before, byte after, byte 
   char *strValue = NULL;
 
   strValue = (char*) malloc((before + after + 2) * sizeof(char));
-  dtostrf(value, before + after + (after == 0 ? 0 : 1), after, strValue);
 
-  for (int i = 0 ; i < before + after + 1; i++) {
-    if (strValue[i] == ' ' || strValue[i] == '-') {
+  if (after == 0)
+    dtostrf(value, before + after, after, strValue);
+  else
+    dtostrf(value, before + after + 1, after, strValue);
+
+  for (int i = 0 ; i < before + after + 1; i++)
+  {
+    if (strValue[i] == ' ' || strValue[i] == '-')
       strValue[i] = '0';
-    }
   }
-  if (value < 0) {
+  if (value < 0)
     strValue[0] = '-';
-  }
-  //If the result is bigger, we truncate it so the OSD won't be falsed.
-  strValue[before + after + (after ? 1 : 0)] = '\0';
+  if (after == 0) //If the result is bigger, we truncate it so the OSD won't be falsed.
+    strValue[before] = '\0';
+  else
+    strValue[before + after + 1] = '\0';
+
   print(strValue, x, y, blink, inv);
   free(strValue);
 }
 
 /******************************************************************************
-   Function: Max7456::clearScreen
+ * Function: Max7456::clearScreen
  ******************************************************************************/
 void Max7456::clearScreen()
 {
   _regDmm.bits.clearDisplayMemory = 1 ;
+
   digitalWrite(_pinCS, LOW);
   SPI.transfer(DMM_ADDRESS_WRITE);
   SPI.transfer(_regDmm.whole);
-  digitalWrite(_pinCS, HIGH);
-  
-  // Wait for completion, 3 times margin
-  delay(6);  
+
+  /*wait for operation to be complete.
+  while (_regDmm.bits.clearDisplayMemory == 1 )
+  {
+    SPI.transfer(DMM_ADDRESS_READ);
+    _regDmm.whole = SPI.transfer(0x00);
+  }
+  */
+  digitalWrite(_pinCS, HIGH); //disable device
 }
 
 /******************************************************************************
-   Function: Max7456::init
+ * Function: Max7456::init
  ******************************************************************************/
 void Max7456::init(byte iPinCS)
 {
   _pinCS = iPinCS;
   _isActivatedOsd = false;
 
+  _regVm1.whole = 0b01000111;
   pinMode(iPinCS, OUTPUT);
-  digitalWrite(iPinCS, HIGH);
-
+  digitalWrite(iPinCS, HIGH); //disable device
   delay(100); //power up time
 
-  // Select PAL, Reset all registers to default and clear screen
+  digitalWrite(_pinCS, LOW);
+  SPI.transfer(VM0_ADDRESS_WRITE);
+
   _regVm0.whole = 0x00;
   _regVm0.bits.videoSelect = 1; //PAL
   _regVm0.bits.softwareResetBit = 1;
-  digitalWrite(_pinCS, LOW);
-  SPI.transfer(VM0_ADDRESS_WRITE);
   SPI.transfer(_regVm0.whole);
   digitalWrite(_pinCS, HIGH);
+  delay(500);
 
-  // Wait until reset is completed 
-  delay(100); // 10 times margin, 10ms is typical
-
-  // Set White Level Brightness to 90%
   digitalWrite(_pinCS, LOW);
-  for (int x = 0 ; x < 16 ; x++) {
+  for (int x = 0 ; x < 16 ; x++)
+  {
     _regRb[x].whole = 0x00;
     _regRb[x].bits.characterWhiteLevel = 2;
     SPI.transfer(x + RB0_ADDRESS_WRITE);
     SPI.transfer(_regRb[x].whole);
   }
-  digitalWrite(_pinCS, HIGH);
 
-  // Synchronize screen updates with VSYNCH (avoids flicker)
   _regVm0.whole = 0x00;
   _regVm0.bits.verticalSynch = 1;
-  digitalWrite(_pinCS, LOW);
+
   SPI.transfer(VM0_ADDRESS_WRITE);
   SPI.transfer(_regVm0.whole);
+
+  //  digitalWrite(_pinCS,HIGH);
+  //
+  //  digitalWrite(_pinCS,LOW);
+  //SPI.transfer(VM1_ADDRESS_WRITE);
+  //SPI.transfer(0x0C);
+
   digitalWrite(_pinCS, HIGH);
 }
 
 /******************************************************************************
-   Function: Max7456::activateOSD
+ * Function: Max7456::activateOSD
  ******************************************************************************/
 void Max7456::activateOSD(bool act)
 {
-  if (_isActivatedOsd != act) {
+  if (_isActivatedOsd != act)
+  {
     _regVm0.bits.videoSelect = 1;
-    _regVm0.bits.enableOSD = (act ? 1 : 0);
+    if (act)
+      _regVm0.bits.enableOSD = 1;
+    else
+      _regVm0.bits.enableOSD = 0;
+
     digitalWrite(_pinCS, LOW);
     SPI.transfer(VM0_ADDRESS_WRITE);
     SPI.transfer(_regVm0.whole);
@@ -364,11 +380,15 @@ void Max7456::activateOSD(bool act)
 }
 
 /******************************************************************************
-   Function: Max7456::activateExternalVideo
+ * Function: Max7456::activateExternalVideo
  ******************************************************************************/
 void Max7456::activateExternalVideo(bool activExtVid)
 {
-  _regVm0.bits.synchSelect = (activExtVid ? 0 : 3);
+  if (!activExtVid)
+    _regVm0.bits.synchSelect = 3; //11
+  else
+    _regVm0.bits.synchSelect = 0; //0
+
   digitalWrite(_pinCS, LOW);
   SPI.transfer(VM0_ADDRESS_WRITE);
   SPI.transfer(_regVm0.whole);
@@ -376,42 +396,43 @@ void Max7456::activateExternalVideo(bool activExtVid)
 }
 
 /******************************************************************************
-   Function: Max7456::CARACT2ByteArray
+ * Function: Max7456::CARACT2ByteArray
  ******************************************************************************/
-byte* Max7456::CARACT2ByteArray(const CARACT car, byte *array)
+byte* Max7456::CARACT2ByteArray(const CARACT car)
 {
-  for (int i = 0 ; i < 54 ; i++) {
+  byte *array = NULL;
+  array = new charact;
+  for (int i = 0 ; i < 54 ; i++)
     array[i] = car.whole[i];
-  }
+
   return array;
 }
 
 /******************************************************************************
-   Function: Max7456::byteArray2CARACT
+ * Function: Max7456::byteArray2CARACT
  ******************************************************************************/
 CARACT Max7456::byteArray2CARACT(const charact array)
 {
   CARACT car;
-  for (int i = 0 ; i < 54 ; i++) {
+  for (int i = 0 ; i < 54 ; i++)
     car.whole[i] = array[i];
-  }
+
   return car;
 }
 
 /******************************************************************************
-   Function: Max7456::getCARACFromProgMem
+ * Function: Max7456::getCARACFromProgMem
  ******************************************************************************/
 void Max7456::getCARACFromProgMem(const char *table, byte i, charact car)
 {
   unsigned long index;
   byte read;
-
   index = i * 54;
-  for (unsigned long j = 0 ; j < 54 ; j++) {
+  for (unsigned long j = 0 ; j < 54 ; j++)
+  {
     read = pgm_read_byte_near(table + index + j );
     car[j] = read;
-    if (car[j] == 0x55) {
+    if (car[j] == 0x55)
       car[j] = 0xff;
-    }
   }
 }

@@ -1769,15 +1769,14 @@ const char tableOfAllCharacters[13824] PROGMEM = {
  *******************************************************************************/
 #include "max7456.h"
 #include <SPI.h>
-#include <EEPROM.h>
 
 /*******************************************************************************
   Minimosd Display Protocol Definition v1.0
    Formal definition for the display protocol: (Token[Command[Param]])*
    Tokens,  commands and params are all bytes.
-   All tokens except CMD_CMD results in the corresponding character in the Max7456
-   charmap being displayed onscreen  att current position using current params.
-   The token CMD_CMD signals that the next byte is a command.
+   All tokens except 0 results in the corresponding character in the Max7456
+   charmap being displayed onscreen  att current position using current paramss.
+   The token 0 signals that the next byte is a command.
    Some commands have a single param.
    Invalid characters are ignored (e.g. unknown commands, params that are out of
    bounds, etc).
@@ -1806,11 +1805,6 @@ const char tableOfAllCharacters[13824] PROGMEM = {
  *******************************************************************************/
 #define CS_PIN      6   // SPI Chip Select pin connected to Max7456
 #define MAX_LINES   13  // For both NTSC 13 and PAL 16
-
-/*******************************************************************************
-   EEPROM memory locations
- *******************************************************************************/
-#define EEPROM_CHARMAP_LOADED 0
 
 /*******************************************************************************
    max7456 state variables. It is OK to use state values , but do not set them
@@ -1858,7 +1852,6 @@ void setFillState( bool newState ) {
     fillState = newState;
   }
 }
-
 /*******************************************************************************
    Function: setInverseCharState
  *******************************************************************************/
@@ -1895,23 +1888,25 @@ void newLine( void ) {
  *******************************************************************************/
 void loadCharSet( void ) {
   charact currentChar;      // Represents a character as stored in memory (byte[54])
-
+  bool initialOsdState = osdState;
+  setOsdState( false );     // Deactivate osd display.
   for (int i = 0 ; i <= 0xff; i++)
   {
     Max7456::getCARACFromProgMem(tableOfAllCharacters, i, currentChar);
     osd.sendCharacter(currentChar, i);
   }
+  setOsdState( initialOsdState );
 }
 
 /*******************************************************************************
    Function: setup
-             The Arduino setup function
+             The Arduino setup function. Automatically run before loop is entered
  *******************************************************************************/
 void setup() {
- 
+  byte tab[] = {0xC8, 0xC9};
   // SPI Setup
-  pinMode(CS_PIN, OUTPUT); // Chip select pin for MAX7456 SPI
-  pinMode(SS, OUTPUT);     // SS not used, but must be set as output for SPI lib
+  pinMode(CS_PIN, OUTPUT);
+  pinMode(SS, OUTPUT);
   SPI.begin();
 
   // Serial channel setup
@@ -1919,24 +1914,20 @@ void setup() {
 
   // MAX7456 setup
   osd.init(6);
-  osd.setDisplayOffsets(45/*0-63*/, 0/*0-31*/);
+  osd.setDisplayOffsets(108, 94);
   osd.setBlinkParams(_8fields, _BT_BT);
   setBlinkState( blinkState );
   setFillState( fillState );
   setInverseState( inverseState);
   setOsdState( osdState );
   setVideoState(videoState);
-  // Load the MAX7456 charset once only
-  if (!EEPROM.read(EEPROM_CHARMAP_LOADED)) {
-    loadCharSet();
-    EEPROM.write(EEPROM_CHARMAP_LOADED, 1);
-  }
+  loadCharSet();
   osd.clearScreen();
 }
 
 /*******************************************************************************
    Function: loop
-             Arduinos main loop function
+             Arduinos main loop function. May never return
  *******************************************************************************/
 void loop() {
   static bool activeCommand = false;
@@ -1982,7 +1973,7 @@ void loop() {
       }
       else {
         osd.printMax7456Char( fillState && (inChar > 31) && (inChar < 128) ? inChar + 0x80 : inChar, curX++, curY, blinkState, inverseState );
-        if (curX >= 30) {
+        if (curX >= 30){
           curX = 0;
           curY++;
         }
