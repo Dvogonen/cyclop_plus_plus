@@ -42,9 +42,9 @@
   Minimosd Display Protocol Definition v1.0
    Formal definition for the display protocol: (Token[Command[Param]])*
    Tokens,  commands and params are all bytes.
-   All tokens except 0 results in the corresponding character in the Max7456
-   charmap being displayed onscreen  att current position using current paramss.
-   The token 0 signals that the next byte is a command.
+   All tokens except CMD_CMD results in the corresponding character in the Max7456
+   charmap being displayed onscreen  att current position using current params.
+   The token CMD_CMD signals that the next byte is a command.
    Some commands have a single param.
    Invalid characters are ignored (e.g. unknown commands, params that are out of
    bounds, etc).
