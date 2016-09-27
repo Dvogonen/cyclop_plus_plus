@@ -63,61 +63,61 @@
 #define FORCED_SCREEN_UPDATE_MS   6000
 
 // Alarm timing constants (in milli seconds)
-#define ALARM_MAX_ON      50
-#define ALARM_MAX_OFF     200
-#define ALARM_MED_ON      100
-#define ALARM_MED_OFF     1000
-#define ALARM_MIN_ON      200
-#define ALARM_MIN_OFF     3000
+#define ALARM_MAX_ON              50
+#define ALARM_MAX_OFF             200
+#define ALARM_MED_ON              100
+#define ALARM_MED_OFF             1000
+#define ALARM_MIN_ON              200
+#define ALARM_MIN_OFF             3000
 
 // Digital pin definitions
-#define SPI_CLOCK_PIN     2
-#define SLAVE_SELECT_PIN  3
-#define SPI_DATA_PIN      4
-#define BUTTON_PIN        5
-#define ALARM_PIN         6
-#define LED_PIN           13
+#define SPI_CLOCK_PIN             2
+#define SLAVE_SELECT_PIN          3
+#define SPI_DATA_PIN              4
+#define BUTTON_PIN                5
+#define ALARM_PIN                 6
+#define LED_PIN                   13
 
 // Analog pin definitions
-#define VOLTAGE_METER_PIN A1
-#define RSSI_PIN          A6
+#define VOLTAGE_METER_PIN         A1
+#define RSSI_PIN                  A6
 
 // Minimum delay between setting a channel and trusting the RSSI values
-#define RSSI_STABILITY_DELAY_MS 25
+#define RSSI_STABILITY_DELAY_MS   25
 
 // RSSI threshold for accepting a channel
-#define RSSI_TRESHOLD     250
+#define RSSI_TRESHOLD             250
 
 // Channels in use 
-#define CHANNEL_MIN       0
-#define CHANNEL_MAX       39
+#define CHANNEL_MIN               0
+#define CHANNEL_MAX               39
 
 // Max and Min frequencies
-#define FREQUENCY_MIN     5645
-#define FREQUENCY_MAX     5945
+#define FREQUENCY_MIN             5645
+#define FREQUENCY_MAX             5945
 
 //EEPROM addresses
-#define EEPROM_CHANNEL    0
-#define EEPROM_OPTIONS    1
+#define EEPROM_CHANNEL            0
+#define EEPROM_OPTIONS            1
 #define EEPROM_CHECK      (EEPROM_OPTIONS + MAX_OPTIONS)
 
 // click types
-#define NO_CLICK          0
-#define SINGLE_CLICK      1
-#define DOUBLE_CLICK      2
-#define LONG_CLICK        3
-#define LONG_LONG_CLICK   4
-#define WAKEUP_CLICK      5
+#define NO_CLICK                  0
+#define SINGLE_CLICK              1
+#define DOUBLE_CLICK              2
+#define LONG_CLICK                3
+#define LONG_LONG_CLICK           4
+#define WAKEUP_CLICK              5
 
 // Button pins go low or high on button clicks
-#define BUTTON_PRESSED    LOW
+#define BUTTON_PRESSED            LOW
 
 // LED state defines
-#define LED_OFF           LOW
-#define LED_ON            HIGH
+#define LED_OFF                   LOW
+#define LED_ON                    HIGH
 
 // Release information
-#define VER_DATE_STRING   "2016-10-13"
-#define VER_INFO_STRING   "v2.0 by Dvogonen"
+#define VER_DATE_STRING           "2016-10-13"
+#define VER_INFO_STRING           "v2.0 by DVOGONEN"
 
 #endif // cyclop_plus_osd_h

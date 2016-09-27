@@ -69,7 +69,6 @@ void Max7456::sendCharacter(const charact chara, byte pos)
     SPI.transfer(CMDI_ADDRESS_WRITE);
     SPI.transfer(chara[i]);
   }
-
   _regCmm = 0xA0; //To write the NVM array
   SPI.transfer(CMM_ADDRESS_WRITE);
   SPI.transfer(_regCmm);
@@ -98,10 +97,8 @@ void Max7456::getCharacter(charact chara, byte x, byte y)
   activateOSD(false);
   //datasheet p38
   digitalWrite(_pinCS, LOW);
-
   SPI.transfer(CMAH_ADDRESS_WRITE);
   SPI.transfer(charAddress);
-
   _regCmm = 0x50; //To read from the NVM array
   SPI.transfer(CMM_ADDRESS_WRITE);
   SPI.transfer(_regCmm);
@@ -110,7 +107,6 @@ void Max7456::getCharacter(charact chara, byte x, byte y)
   {
     SPI.transfer(CMAL_ADDRESS_WRITE);
     SPI.transfer(i);
-
     SPI.transfer(CMDO_ADDRESS_READ); //read from device through spi
     chara[i] = SPI.transfer(0x00);
   }
@@ -136,7 +132,6 @@ void Max7456::printCharacterToSerial(const charact array, bool img)
         printPixel(car.line[i].pixels[j].pix2);
         printPixel(car.line[i].pixels[j].pix3);
       }
-
       Serial.println("");
     }
     Serial.println("------------");
@@ -193,14 +188,12 @@ void Max7456::print(const char string[], byte x, byte y, byte blink, byte inv)
   {
     currentChar = string[++size];
   }
-
   chars = (byte*) malloc(size * sizeof(byte));
 
   for (byte i = 0 ; i < size ; i++)
   {
     chars[i] = string[i];
   }
-
   printMax7456Chars(chars, size, x,  y,  blink , inv );
   free(chars);
 }
@@ -240,7 +233,6 @@ void Max7456::printMax7456Chars(byte chars[], byte size, byte x, byte y, byte bl
 
   SPI.transfer(DMAL_ADDRESS_WRITE); // set start address low
   SPI.transfer(posAddressLO);
-
 
   for (int i = 0; i < size ; i++)
   {

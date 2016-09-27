@@ -215,22 +215,20 @@ void setup()
   // Initialize the display
   Serial.begin(115200);
 
-  // Wait for MinimOSD and Set Options
+  // Set Options
   if (digitalRead(BUTTON_PIN) == BUTTON_PRESSED ) {
-    delay(3500);
     setOptions();
     writeEeprom();
   }
-  else {  // Wait for MinimOSD and show start screen
-    delay(3500);
+  else { // Show Startscreen
     if (options[SHOW_STARTSCREEN_OPTION]) {
-      drawStartScreen();
-      // Wait 3000 ms. Break if button is pressed
-      for (i = 300; i; i--)
-      {
-        if (digitalRead(BUTTON_PIN) == BUTTON_PRESSED )
-          return;
-        delay(10);
+      long redrawTimer = 0;
+      long stopTimer = millis() + 7000;
+      while (( millis() < stopTimer ) && (digitalRead(BUTTON_PIN) != BUTTON_PRESSED )) {
+        if ( millis() > redrawTimer) {
+          redrawTimer = millis() + 500;
+          drawStartScreen();
+        }
       }
     }
   }
@@ -296,6 +294,8 @@ void loop()
     osd(CMD_CLEAR_SCREEN);
     if ( options[INFO_LINE_OPTION] || (forceDisplayTimer > millis()))
       drawInfoLine();
+    else
+      saveScreenActive = 1;
   }
 
   // Check if EEPROM needs a save. Reduce EEPROM writes by not saving too often
@@ -806,6 +806,7 @@ void setOptions()
   unsigned char exitNow = false;
   unsigned char menuSelection = 0;
   unsigned char click = NO_CLICK;
+  long redrawTimer = 0;
 
   // Display option screen
   drawOptionsScreen( menuSelection );
@@ -848,8 +849,10 @@ void setOptions()
           options[menuSelection] = !options[menuSelection];
         break;
     }
-    if (click != NO_CLICK)
+    if (( click != NO_CLICK ) || ( millis() > redrawTimer )) {
+      redrawTimer = millis() + 1000;
       drawOptionsScreen( menuSelection );
+    }
   }
 }
 
@@ -876,9 +879,6 @@ void testAlarm( void ) {
 }
 
 //******************************************************************************
-//* Screen functions
-//******************************************************************************
-//******************************************************************************
 //* function: osd
 //******************************************************************************
 void osd( unsigned char command )
@@ -888,6 +888,9 @@ void osd( unsigned char command )
   Serial.write( command );
 }
 
+//******************************************************************************
+//* function: osd
+//******************************************************************************
 void osd( unsigned char command, unsigned char param )
 {
   while (Serial.availableForWrite() < 3) ;
@@ -896,12 +899,18 @@ void osd( unsigned char command, unsigned char param )
   Serial.write( param );
 }
 
+//******************************************************************************
+//* function: osd_char
+//******************************************************************************
 void osd_char( unsigned char token )
 {
   while (Serial.availableForWrite() == 0) ;
   Serial.write( token );
 }
 
+//******************************************************************************
+//* function: osd_int
+//******************************************************************************
 void osd_int( unsigned int integer )
 {
   char buff[17];
@@ -910,6 +919,9 @@ void osd_int( unsigned int integer )
   Serial.write(buff);
 }
 
+//******************************************************************************
+//* function: osd_string
+//******************************************************************************
 void osd_string( const char *str )
 {
   while (Serial.availableForWrite() < strlen(str)) ;
@@ -1022,6 +1034,8 @@ void drawAutoScanScreen( void ) {
   osd( CMD_SET_X, 1 );
   osd( CMD_SET_Y, 6 );
   osd_string(" RSSI     :               ");
+
+  batteryMeter(27, 0);
 }
 
 //******************************************************************************
@@ -1150,19 +1164,19 @@ void drawOptionsScreen(unsigned char option ) {
       osd( CMD_DISABLE_INVERSE );
     }
     switch (j) {
-      case BATTERY_TYPE_OPTION:      osd_string("Battery Type       "); break;
-      case BATTERY_ALARM_OPTION:     osd_string("Battery Alarm      "); break;
-      case SHOW_STARTSCREEN_OPTION:  osd_string("Show Startscreen   "); break;
-      case INFO_LINE_OPTION:         osd_string("Show Info Line     "); break;
-      case INFO_LINE_POS_OPTION:     osd_string("Info Line Position "); break;
-      case PAL_VIDEO_OPTION:         osd_string("Video Format       "); break;
-      case RESET_SETTINGS_COMMAND:   osd_string("Reset Settings     "); break;
-      case TEST_ALARM_COMMAND:       osd_string("Test Alarm         "); break;
-      case EXIT_COMMAND:             osd_string("Exit               "); break;
+      case BATTERY_TYPE_OPTION:      osd_string("battery type       "); break;
+      case BATTERY_ALARM_OPTION:     osd_string("battery alarm      "); break;
+      case SHOW_STARTSCREEN_OPTION:  osd_string("show start screen  "); break;
+      case INFO_LINE_OPTION:         osd_string("constant info line "); break;
+      case INFO_LINE_POS_OPTION:     osd_string("info line position "); break;
+      case PAL_VIDEO_OPTION:         osd_string("video format       "); break;
+      case RESET_SETTINGS_COMMAND:   osd_string("reset settings     "); break;
+      case TEST_ALARM_COMMAND:       osd_string("test alarm         "); break;
+      case EXIT_COMMAND:             osd_string("exit               "); break;
     }
     if (j < MAX_OPTIONS) {
       switch (j) {
-        case BATTERY_TYPE_OPTION:     osd_string(options[j] ? "2s LiPo" : "3s LiPo"); break;
+        case BATTERY_TYPE_OPTION:     osd_string(options[j] ? "2s lipo" : "3s lipo"); break;
         case BATTERY_ALARM_OPTION:    osd_string(options[j] ? "yes    " : "no     "); break;
         case SHOW_STARTSCREEN_OPTION: osd_string(options[j] ? "yes    " : "no     "); break;
         case INFO_LINE_OPTION:        osd_string(options[j] ? "yes    " : "no     "); break;
@@ -1172,8 +1186,6 @@ void drawOptionsScreen(unsigned char option ) {
     }
     else
       osd_string("execute");
-
-    osd( CMD_NEWLINE );
   }
   // Make sure that the inverse is disabled even if option was on last line
   osd( CMD_DISABLE_INVERSE );
@@ -1185,14 +1197,14 @@ void drawOptionsScreen(unsigned char option ) {
 void drawInfoLine( void )
 {
   char buffer[3];
-  osd( CMD_SET_X, 13 );
+  osd( CMD_SET_X, 14 );
   osd( CMD_SET_Y, options[INFO_LINE_POS_OPTION] ? 12 : 0);
   osd_string(shortNameOfChannel(currentChannel, buffer));
   osd_char(OSD_SPACE);
-  osd_int(getFrequency(currentChannel));
   osd_char(OSD_MHZ);
+  osd_int(getFrequency(currentChannel));
   osd_char(OSD_SPACE);
   osd_char(OSD_ANTENNA);
   osd_int(currentRssi);
-  batteryMeter(27,  options[INFO_LINE_POS_OPTION] ? 12 : 0);
+  batteryMeter(27, options[INFO_LINE_POS_OPTION] ? 12 : 0);
 }

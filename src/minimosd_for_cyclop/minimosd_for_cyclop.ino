@@ -1769,6 +1769,7 @@ const char tableOfAllCharacters[13824] PROGMEM = {
  *******************************************************************************/
 #include "max7456.h"
 #include <SPI.h>
+#include <EEPROM.h>
 
 /*******************************************************************************
   Minimosd Display Protocol Definition v1.0
@@ -1805,9 +1806,14 @@ const char tableOfAllCharacters[13824] PROGMEM = {
    Hardware Defines
  *******************************************************************************/
 #define CS_PIN      6   // SPI Chip Select pin connected to Max7456
-#define MAX_LINES   13  // For both NTSC 13 and PAL 16
+#define MAX_LINES   13  // For both NTSC and PAL
 #define VIDEO_PAL   1   // PAL video format
 #define VIDEO_NTSC  0   // NTSC video format
+
+/*******************************************************************************
+   EEPROM addresses
+ *******************************************************************************/
+#define EEPROM_CHARSET_LOADED 0
 
 /*******************************************************************************
    max7456 state variables. It is OK to use state values , but do not set them
@@ -1826,14 +1832,14 @@ uint8_t curY = 0;        // May be directly manipulated
    Other Global Variables
  *******************************************************************************/
 Max7456 osd;
-long systemPulseTimer = 0;
 
 /*******************************************************************************
    Function: setBlinkState
            : enables or disables blink of new characters written to screen.
            : the setting does not impact text already on screen
  *******************************************************************************/
-void setBlinkState( bool newState ) {
+void setBlinkState( bool newState )
+{
   if ( newState != blinkState) {
     blinkState = newState;
   }
@@ -1843,7 +1849,8 @@ void setBlinkState( bool newState ) {
    Function: setOSDState
            : turns OSD information on and off
  *******************************************************************************/
-void setOsdState( bool newState ) {
+void setOsdState( bool newState )
+{
   if ( newState != osdState) {
     osdState = newState;
     osd.activateOSD( osdState );
@@ -1858,7 +1865,8 @@ void setOsdState( bool newState ) {
            : Please note that only the "normal" writable characters (32-128)
            : will be filled. the setting has no effect on other character values.
  *******************************************************************************/
-void setFillState( bool newState ) {
+void setFillState( bool newState )
+{
   if ( newState != fillState) {
     fillState = newState;
   }
@@ -1871,7 +1879,8 @@ void setFillState( bool newState ) {
            : Transparent pixels stay transparent.
            : the setting does not impact text already on screen
  *******************************************************************************/
-void setInverseState( bool newState ) {
+void setInverseState( bool newState )
+{
   if ( newState != inverseState) {
     inverseState = newState;
   }
@@ -1882,7 +1891,8 @@ void setInverseState( bool newState ) {
            : TODO Check what this does. The data sheet and the library documentation
            : are not agreeing
  *******************************************************************************/
-void setInVideoState( bool newState ) {
+void setInVideoState( bool newState )
+{
   if ( newState != inVideoState) {
     inVideoState = newState;
     osd.activateExternalVideo( inVideoState );
@@ -1890,14 +1900,29 @@ void setInVideoState( bool newState ) {
 }
 
 /*******************************************************************************
-   Function: setoutVideoFormat
-           : TODO Check what this does. The data sheet and the library documentation
-           : are not agreeing
+   Function: setOutVideoFormat
  *******************************************************************************/
-void setoutVideoFormat( byte newState ) {
+void setOutVideoFormat( byte newState )
+{
   if ( newState != outVideoFormat) {
     outVideoFormat = newState;
     osd.setOutVideoFormat( outVideoFormat );
+  }
+}
+
+/*******************************************************************************
+   Function: updateVideoFormat
+           : checks the incomming video format.
+           : switches OSD video format if it differs from invideo format
+           : if neither PAL or NTSC is detected, the OSD video format remains
+           : unchanged.
+ *******************************************************************************/
+void updateVideoFormat( void )
+{
+  byte tempVideoFormat = osd.getInVideoFormat();
+  if (( tempVideoFormat == VIDEO_PAL ) || ( tempVideoFormat == VIDEO_NTSC )) {
+    outVideoFormat = tempVideoFormat;
+    setOutVideoFormat( outVideoFormat);
   }
 }
 
@@ -1908,7 +1933,7 @@ void setoutVideoFormat( byte newState ) {
 void newLine( void ) {
   curX = 0;
   curY++;
-  if (curY >= MAX_LINES)
+  if ( curY >= MAX_LINES )
     curY = 0;
 }
 
@@ -1917,9 +1942,9 @@ void newLine( void ) {
            : Loads the characters of the variable tableOfAllCharacters
            : into the EEPROM character memory of the max7456 circuit
  *******************************************************************************/
-void loadCharSet( void ) {
+void loadCharSet( void )
+{
   charact currentChar;
-
   bool initialOsdState = osdState;  // save OSD display state
   setOsdState( false );             // Deactivate osd display.
   for (int i = 0 ; i <= 0xff; i++)
@@ -1931,26 +1956,11 @@ void loadCharSet( void ) {
 }
 
 /*******************************************************************************
-   Function: setVideo
-           : checks the incomming video format.
-           : switches OSD video format if it differs from invideo format
-           : if neither PAL or NTSC is detected, the OSD video format remains
-           : unchanged.
- *******************************************************************************/
-void setVideo( void )
-{
-  byte tempVideoFormat = osd.getInVideoFormat();
-  if (( tempVideoFormat == VIDEO_PAL ) || ( tempVideoFormat == VIDEO_NTSC )) {
-    outVideoFormat = tempVideoFormat;
-    setoutVideoFormat( outVideoFormat);
-  }
-}
-
-/*******************************************************************************
    Function: setup
              The Arduino setup function. Automatically runs once before loop
  *******************************************************************************/
-void setup() {
+void setup()
+{
   byte tab[] = {0xC8, 0xC9};
   // SPI Setup
   pinMode(CS_PIN, OUTPUT);
@@ -1962,7 +1972,7 @@ void setup() {
 
   // MAX7456 setup
   osd.init(6, outVideoFormat);
-  osd.setDisplayOffsets(108, 94);       // TODO - These values need trimming
+  osd.setDisplayOffsets(44, 30);
   osd.setBlinkParams(_8fields, _BT_BT); // TODO - Why and What?
   setBlinkState( blinkState );
   setFillState( fillState );
@@ -1970,14 +1980,15 @@ void setup() {
   setOsdState( osdState );
   setInVideoState(inVideoState);
   loadCharSet();
-  osd.clearScreen();                    // TODO - Perhaps earlierer?
+  osd.clearScreen();
 }
 
 /*******************************************************************************
    Function: loop
              Arduinos main loop function. May never return
  *******************************************************************************/
-void loop() {
+void loop()
+{
   static bool activeCommand = false;
   static bool waitingForX = false;
   static bool waitingForY = false;
@@ -2007,7 +2018,7 @@ void loop() {
           case CMD_NEWLINE:         newLine(); break;
           case CMD_SET_X:           waitingForX = true; break;
           case CMD_SET_Y:           waitingForY = true; break;
-          case CMD_SET_VIDEO:       setVideo(); break;
+          case CMD_SET_VIDEO:       updateVideoFormat(); break;
           default: break;           // Unknown command - Just skip it
         }
         activeCommand = false;
