@@ -28,18 +28,20 @@ public:
 	 *  Constructor
 	 *  Initialize communications and device
 	 *  @param pinCS : pin ~CS of the arduino where max7456 is plugged.
+   *  @param videoFormat : 0=NTSC, 1=PAL
    **/
-	Max7456(byte pinCS);
+	Max7456(byte pinCS, byte videoFormat);
 
 	/**
 	 *  Initialize communications and device
-	 *  @param pinCS : pin ~CS of the arduino where max7456 is plugged.
+   *  @param pinCS : pin ~CS of the arduino where max7456 is plugged.
+   *  @param videoFormat : 0=NTSC, 1=PAL
 	 *  @code
 	 *  Max7456 osd;
 	 *  osd.init(9); //Note it's that it's the same than usinge constructor Max7456(byte pinCS).
 	 *  @endcode
    **/
-	void init(byte pinCS);
+	void init(byte pinCS, byte videoFormat);
 
 	/**
 	 * Set the base time for blink.
@@ -189,6 +191,19 @@ public:
 	 * @note See file example for more informations.
    **/
 	static void getCARACFromProgMem(const char *table, byte i,charact c);
+
+    /**
+   *  Retrieve current invideo format
+   *  return: 0=NTSC, 1=PAL, 3= No format detected
+   **/
+   byte getInVideoFormat( void );
+
+    /**
+   *  Sets video format 
+   *  Operation is only done if the video format differs from the one in use
+   *  @newVideoFormat 0=NTSC, 1=PAL
+   **/
+   void setOutVideoFormat( byte newVideoFormat );
 
 private:
 	static void printPixel(byte value);

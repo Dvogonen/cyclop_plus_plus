@@ -3,15 +3,15 @@
 #include <SPI.h>
 
 /******************************************************************************
- * Function: Max7456::Max7456
+   Function: Max7456::Max7456
  ******************************************************************************/
-Max7456::Max7456(byte pinCS)
+Max7456::Max7456(byte pinCS, byte videoFormat)
 {
-  this->init(pinCS);
+  this->init(pinCS, videoFormat);
 }
 
 /******************************************************************************
- * Function: Max7456::setBlinkParams
+   Function: Max7456::setBlinkParams
  ******************************************************************************/
 void Max7456::setBlinkParams(byte blinkBase, byte blinkDC)
 {
@@ -24,7 +24,7 @@ void Max7456::setBlinkParams(byte blinkBase, byte blinkDC)
 }
 
 /******************************************************************************
- * Function: Max7456::setDisplayOffsets
+   Function: Max7456::setDisplayOffsets
  ******************************************************************************/
 void Max7456::setDisplayOffsets(byte horizontal, byte vertical)
 {
@@ -45,14 +45,14 @@ void Max7456::setDisplayOffsets(byte horizontal, byte vertical)
 }
 
 /******************************************************************************
- * Function: Max7456::Max7456
+   Function: Max7456::Max7456
  ******************************************************************************/
 Max7456::Max7456()
 {
 }
 
 /******************************************************************************
- * Function: Max7456::sendCharacter
+   Function: Max7456::sendCharacter
  ******************************************************************************/
 void Max7456::sendCharacter(const charact chara, byte pos)
 {
@@ -84,7 +84,7 @@ void Max7456::sendCharacter(const charact chara, byte pos)
 }
 
 /******************************************************************************
- * Function: Max7456::getCharacter
+   Function: Max7456::getCharacter
  ******************************************************************************/
 void Max7456::getCharacter(charact chara, byte x, byte y)
 {
@@ -117,7 +117,7 @@ void Max7456::getCharacter(charact chara, byte x, byte y)
   digitalWrite(_pinCS, HIGH);
 }
 /******************************************************************************
- * Function: Max7456::printCharacterToSerial
+   Function: Max7456::printCharacterToSerial
  ******************************************************************************/
 void Max7456::printCharacterToSerial(const charact array, bool img)
 {
@@ -157,7 +157,7 @@ void Max7456::printCharacterToSerial(const charact array, bool img)
 }
 
 /******************************************************************************
- * Function: Max7456::Max7456
+   Function: Max7456::Max7456
  ******************************************************************************/
 void Max7456::printPixel(byte value)
 {
@@ -176,7 +176,7 @@ void Max7456::printPixel(byte value)
 }
 
 /******************************************************************************
- * Function: Max7456::print
+   Function: Max7456::print
  ******************************************************************************/
 void Max7456::print(const char string[], byte x, byte y, byte blink, byte inv)
 {
@@ -212,7 +212,7 @@ void Max7456::printMax7456Char(const byte address, byte x, byte y, byte blink, b
 }
 
 /******************************************************************************
- * Function: Max7456::printMax7456Chars
+   Function: Max7456::printMax7456Chars
  ******************************************************************************/
 void Max7456::printMax7456Chars(byte chars[], byte size, byte x, byte y, byte blink , byte inv )
 {
@@ -260,7 +260,7 @@ void Max7456::printMax7456Chars(byte chars[], byte size, byte x, byte y, byte bl
 }
 
 /******************************************************************************
- * Function: Max7456::print
+   Function: Max7456::print
  ******************************************************************************/
 
 void Max7456::print(double value, byte x, byte y, byte before, byte after, byte blink, byte inv)
@@ -291,7 +291,7 @@ void Max7456::print(double value, byte x, byte y, byte before, byte after, byte 
 }
 
 /******************************************************************************
- * Function: Max7456::clearScreen
+   Function: Max7456::clearScreen
  ******************************************************************************/
 void Max7456::clearScreen()
 {
@@ -302,19 +302,19 @@ void Max7456::clearScreen()
   SPI.transfer(_regDmm.whole);
 
   /*wait for operation to be complete.
-  while (_regDmm.bits.clearDisplayMemory == 1 )
-  {
+    while (_regDmm.bits.clearDisplayMemory == 1 )
+    {
     SPI.transfer(DMM_ADDRESS_READ);
     _regDmm.whole = SPI.transfer(0x00);
-  }
+    }
   */
   digitalWrite(_pinCS, HIGH); //disable device
 }
 
 /******************************************************************************
- * Function: Max7456::init
+   Function: Max7456::init
  ******************************************************************************/
-void Max7456::init(byte iPinCS)
+void Max7456::init(byte iPinCS, byte videoFormat)
 {
   _pinCS = iPinCS;
   _isActivatedOsd = false;
@@ -328,7 +328,7 @@ void Max7456::init(byte iPinCS)
   SPI.transfer(VM0_ADDRESS_WRITE);
 
   _regVm0.whole = 0x00;
-  _regVm0.bits.videoSelect = 1; //PAL
+  _regVm0.bits.videoSelect = videoFormat; //1=PAL, 0=NTSC
   _regVm0.bits.softwareResetBit = 1;
   SPI.transfer(_regVm0.whole);
   digitalWrite(_pinCS, HIGH);
@@ -359,7 +359,7 @@ void Max7456::init(byte iPinCS)
 }
 
 /******************************************************************************
- * Function: Max7456::activateOSD
+   Function: Max7456::activateOSD
  ******************************************************************************/
 void Max7456::activateOSD(bool act)
 {
@@ -380,7 +380,7 @@ void Max7456::activateOSD(bool act)
 }
 
 /******************************************************************************
- * Function: Max7456::activateExternalVideo
+   Function: Max7456::activateExternalVideo
  ******************************************************************************/
 void Max7456::activateExternalVideo(bool activExtVid)
 {
@@ -396,7 +396,7 @@ void Max7456::activateExternalVideo(bool activExtVid)
 }
 
 /******************************************************************************
- * Function: Max7456::CARACT2ByteArray
+   Function: Max7456::CARACT2ByteArray
  ******************************************************************************/
 byte* Max7456::CARACT2ByteArray(const CARACT car)
 {
@@ -409,7 +409,7 @@ byte* Max7456::CARACT2ByteArray(const CARACT car)
 }
 
 /******************************************************************************
- * Function: Max7456::byteArray2CARACT
+   Function: Max7456::byteArray2CARACT
  ******************************************************************************/
 CARACT Max7456::byteArray2CARACT(const charact array)
 {
@@ -421,7 +421,7 @@ CARACT Max7456::byteArray2CARACT(const charact array)
 }
 
 /******************************************************************************
- * Function: Max7456::getCARACFromProgMem
+   Function: Max7456::getCARACFromProgMem
  ******************************************************************************/
 void Max7456::getCARACFromProgMem(const char *table, byte i, charact car)
 {
@@ -434,5 +434,42 @@ void Max7456::getCARACFromProgMem(const char *table, byte i, charact car)
     car[j] = read;
     if (car[j] == 0x55)
       car[j] = 0xff;
+  }
+}
+
+/******************************************************************************
+   Function: Max7456::getInVideoFormat
+ ******************************************************************************/
+byte Max7456::getInVideoFormat( void )
+{
+  digitalWrite(_pinCS, LOW);
+  SPI.transfer(STAT_ADDRESS_READ);
+  _regStat.whole = SPI.transfer(0x00);
+  digitalWrite(_pinCS, HIGH);
+
+  if (_regStat.bits.NTSCDetected ) return 0;
+  if (_regStat.bits.PALDetected ) return 1;
+  return 2;
+}
+
+/******************************************************************************
+   Function: Max7456::setVideoFormat
+ ******************************************************************************/
+void Max7456::setOutVideoFormat( byte newVideoFormat )
+{
+  // Read VM0 register
+  digitalWrite(_pinCS, LOW);
+  SPI.transfer(VM0_ADDRESS_READ);
+  _regVm0.whole = SPI.transfer(0x00);
+  digitalWrite(_pinCS, HIGH);
+
+  // Switch OSD video format
+  if (((byte)_regVm0.bits.videoSelect) != newVideoFormat )
+  {
+    _regVm0.bits.videoSelect = newVideoFormat & 0x01;
+    digitalWrite(_pinCS, LOW);
+    SPI.transfer(VM0_ADDRESS_WRITE);
+    SPI.transfer(_regVm0.whole);
+    digitalWrite(_pinCS, HIGH);
   }
 }
