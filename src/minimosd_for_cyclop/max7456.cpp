@@ -330,7 +330,8 @@ void Max7456::init(byte iPinCS, byte videoFormat)
   for (int x = 0 ; x < 16 ; x++)
   {
     _regRb[x].whole = 0x00;
-    _regRb[x].bits.characterWhiteLevel = 2;
+    // _regRb[x].bits.characterWhiteLevel = 2;  // 90%
+    _regRb[x].bits.characterWhiteLevel = 1;     // 100%
     SPI.transfer(x + RB0_ADDRESS_WRITE);
     SPI.transfer(_regRb[x].whole);
   }

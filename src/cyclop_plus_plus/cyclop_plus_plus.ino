@@ -106,7 +106,7 @@ void          batteryMeter(unsigned char x, unsigned char y, bool showNumbers = 
 unsigned char bestChannelMatch( unsigned int frequency );
 void          drawAutoScanScreen(void);
 void          drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value, bool showNumbers = false );
-void          drawChannelScreen( unsigned char channel, unsigned int rssi);
+void          drawChannelScreen( unsigned char channel);
 void          drawInfoLine( void );
 void          drawLogo( unsigned char xPos, unsigned char yPos);
 void          drawOptionsScreen(unsigned char option );
@@ -167,7 +167,6 @@ unsigned int getFrequency( unsigned char channel ) {
 unsigned char lastClick = NO_CLICK;
 unsigned char currentChannel = 0;
 unsigned char lastChannel = 0;
-unsigned int  currentRssi = 0;
 unsigned char ledState = LED_ON;
 unsigned long forceDisplayTimer;
 unsigned long displayUpdateTimer = 0;
@@ -213,7 +212,7 @@ void setup()
   setRTC6715Frequency(getFrequency(currentChannel));
 
   // Initialize the display
-  Serial.begin(115200);
+  Serial.begin(57600);
 
   // Set Options
   if (digitalRead(BUTTON_PIN) == BUTTON_PRESSED ) {
@@ -255,8 +254,8 @@ void loop()
       osd( CMD_CLEAR_SCREEN );
       currentChannel = bestChannelMatch(graphicScanner(getFrequency(currentChannel)));
       osd( CMD_CLEAR_SCREEN );
-      drawChannelScreen(currentChannel, 0);
-      delay(2500);
+      drawChannelScreen(currentChannel);
+      delay(4000);
       displayUpdateTimer = millis() +  RSSI_STABILITY_DELAY_MS ;
       break;
 
@@ -264,8 +263,8 @@ void loop()
       osd( CMD_CLEAR_SCREEN );
       drawAutoScanScreen();
       currentChannel = bestChannelMatch(autoScan(getFrequency(currentChannel)));
-      drawChannelScreen(currentChannel, 0);
-      delay(2500);
+      drawChannelScreen(currentChannel);
+      delay(4000);
       displayUpdateTimer = millis() +  RSSI_STABILITY_DELAY_MS ;
       break;
 
@@ -479,6 +478,9 @@ unsigned int graphicScanner( unsigned int frequency ) {
   // Draw screen frame etc
   drawScannerScreen();
 
+   // Disable video
+  osd(CMD_DISABLE_VIDEO);
+  
   // Cycle through the band in 5MHz steps
   while ((clickType = getClickType(BUTTON_PIN)) == NO_CLICK) {
     for (i = 0; i < 2; i++) {
@@ -506,6 +508,9 @@ unsigned int graphicScanner( unsigned int frequency ) {
       bestFrequency = scanFrequency;
     }
   }
+  // Enable Video
+  osd(CMD_ENABLE_VIDEO);
+  
   // Return the best frequency
   setRTC6715Frequency(bestFrequency);
   return (bestFrequency);
@@ -520,6 +525,9 @@ unsigned int autoScan( unsigned int frequency ) {
   unsigned int bestRssi = 0;
   unsigned int scanFrequency;
   unsigned int bestFrequency;
+
+  // Disable video
+  osd(CMD_DISABLE_VIDEO);
 
   // Skip 10 MHz forward to avoid detecting the current channel
   scanFrequency = frequency + 10;
@@ -553,6 +561,9 @@ unsigned int autoScan( unsigned int frequency ) {
       bestFrequency = scanFrequency;
     }
   }
+  // Enable Video
+  osd(CMD_ENABLE_VIDEO);
+  
   // Return the best frequency
   setRTC6715Frequency(bestFrequency);
   return (bestFrequency);
@@ -988,7 +999,7 @@ void drawStartScreen( void ) {
 //* function: drawChannelScreen
 //*         : draws the standard screen with channel information
 //******************************************************************************
-void drawChannelScreen( unsigned char channel, unsigned int rssi) {
+void drawChannelScreen( unsigned char channel) {
   char buffer[22];
 
   drawAutoScanScreen();
@@ -1005,10 +1016,8 @@ void drawChannelScreen( unsigned char channel, unsigned int rssi) {
   osd( CMD_SET_X, 13 );
   osd( CMD_SET_Y, 5 );
   osd_string( longNameOfChannel(channel, buffer));
-
-  osd( CMD_SET_X, 13 );
-  osd( CMD_SET_Y, 6 );
-  osd_int(rssi);
+  
+  batteryMeter(27, 0);
 }
 
 //******************************************************************************
@@ -1030,10 +1039,6 @@ void drawAutoScanScreen( void ) {
   osd( CMD_SET_X, 1 );
   osd( CMD_SET_Y, 5 );
   osd_string(" Name     :               ");
-
-  osd( CMD_SET_X, 1 );
-  osd( CMD_SET_Y, 6 );
-  osd_string(" RSSI     :               ");
 
   batteryMeter(27, 0);
 }
@@ -1205,6 +1210,6 @@ void drawInfoLine( void )
   osd_int(getFrequency(currentChannel));
   osd_char(OSD_SPACE);
   osd_char(OSD_ANTENNA);
-  osd_int(currentRssi);
+  osd_int(averageAnalogRead(RSSI_PIN));
   batteryMeter(27, options[INFO_LINE_POS_OPTION] ? 12 : 0);
 }
