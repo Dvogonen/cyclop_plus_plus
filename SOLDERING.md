@@ -6,9 +6,10 @@ Solder the wires to the receiver board. All the solder points are good sized and
 ![Wires Soldered](../master/images/pcb_wires_soldered.jpg)
 
 Now it is time to prepare for soldering the wires to the the minimOSD board and mounting it with sticky tape.
+All the solder points on the minimOSD are through hole, so the soldering is easy.
 ![All the Parts](../master/images/pcb_all_parts.jpg)
 
-This is the finished pcb layer cake from the side. All the solder points on the minimOSD are through hole, so this is easy.
+This is the finished pcb layer cake from the side. 
 ![PCB Layer Cake](../master/images/pcb_layer_cake.jpg)
 
 The only thing left to do is to turn the boards over and solder in the buzzer.
