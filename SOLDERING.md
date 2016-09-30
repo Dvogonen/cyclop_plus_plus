@@ -1,14 +1,14 @@
 #Soldering
-Start by cutting the video track
+Start by cutting the video track.
 ![Track Cut](../master/images/pcb_cut_track.jpg)
 
-Solder the wires to the receiver board
+Solder the wires to the receiver board. All the solder points are good sized and easy to solder to.
 ![Wires Soldered](../master/images/pcb_wires_soldered.jpg)
 
 Now it is time to prepare for soldering the wires to the the minimOSD board and mounting it with sticky tape.
 ![All the Parts](../master/images/pcb_all_parts.jpg)
 
-This is the finished pcb layer cake from the side
+This is the finished pcb layer cake from the side. All the solder points on the minimOSD are through hole, so this is easy.
 ![PCB Layer Cake](../master/images/pcb_layer_cake.jpg)
 
 The only thing left to do is to turn the boards over and solder in the buzzer.
