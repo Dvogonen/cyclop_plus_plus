@@ -64,8 +64,8 @@ Keep the wires as short as possible to avoid interference on the video and seria
 * VIN to 2
 * VOUT to 3
 * GND to 4
-* RX to 5
-* TX to 6
+* RX to 6
+* TX to 5
 * VCC to 7
 
 ##Alarm Buzzer
@@ -79,6 +79,12 @@ An example of a piezo buzzer is this:
 - Solder the leg marked by a + or attached to a red wire to the solder point marked D6.
 - Solder the other (black) leg to a ground point. The legs of the antenna contact as well as the square through hole solder island in the middle of the PCB are ground points.
 ![Alarm Speaker Connection](/images/pcb_buzzer.jpg)
+
+##End Result
+I recommend mounting the minimOSD with double sided mounting tape on top of the radio shielding can. If you do, this how your finished double PCB will look like:
+![Finished PCBs](/images/pcb_finished.jpg)
+Here are a few images of the intermediate build steps:
+[Soldering](SOLDERING.md)
 
 ##Configure CYCLOP++
 - Hold down the button during power up to enter the system options screen.
