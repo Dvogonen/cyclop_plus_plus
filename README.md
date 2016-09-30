@@ -17,8 +17,11 @@ The screen information is added by installing a MinimOSD (aka Mavlink OSD).
 These modules are commonly used in RC FPV aircraft to add visual information to the FPV video signal.
 They are available from multiple sources and are inexpensive.
 Avoid buing the Mikro variants. These are very small, which is convenient, but do not have a power regulator.
-I have tested using the v1.1 version of the PCB. Which looks like this:
+You might e.g. use the v1.1 version of the PCB, which looks like this:
 ![minimOSD](/images/minimOSD1.1.jpg)
+The minimOSD board version used in the build steps below is a bit bigger since it has the so called KV-mod. 
+Either version will work just fine.
+
 
 ####Mount the Programming Pins
 Solder a 2x3 block of pin headers into the holes for the ISP port.
