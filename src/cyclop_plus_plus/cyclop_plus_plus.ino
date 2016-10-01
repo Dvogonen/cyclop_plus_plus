@@ -478,9 +478,9 @@ unsigned int graphicScanner( unsigned int frequency ) {
   // Draw screen frame etc
   drawScannerScreen();
 
-   // Disable video
+  // Disable video
   osd(CMD_DISABLE_VIDEO);
-  
+
   // Cycle through the band in 5MHz steps
   while ((clickType = getClickType(BUTTON_PIN)) == NO_CLICK) {
     for (i = 0; i < 2; i++) {
@@ -510,7 +510,7 @@ unsigned int graphicScanner( unsigned int frequency ) {
   }
   // Enable Video
   osd(CMD_ENABLE_VIDEO);
-  
+
   // Return the best frequency
   setRTC6715Frequency(bestFrequency);
   return (bestFrequency);
@@ -563,7 +563,7 @@ unsigned int autoScan( unsigned int frequency ) {
   }
   // Enable Video
   osd(CMD_ENABLE_VIDEO);
-  
+
   // Return the best frequency
   setRTC6715Frequency(bestFrequency);
   return (bestFrequency);
@@ -992,7 +992,7 @@ void drawStartScreen( void ) {
   osd_string(VER_DATE_STRING);
 
   // Display battery status
-  batteryMeter( 27, 0 );
+  batteryMeter( 25, 0 );
 }
 
 //******************************************************************************
@@ -1002,45 +1002,49 @@ void drawStartScreen( void ) {
 void drawChannelScreen( unsigned char channel) {
   char buffer[22];
 
-  drawAutoScanScreen();
+  drawLogo(0, 0);
+  batteryMeter(25, 0);
 
-  osd( CMD_SET_X, 13 );
+  osd( CMD_ENABLE_FILL );
+  osd( CMD_ENABLE_INVERSE );
+
+  osd( CMD_SET_X, 1 );
+  osd( CMD_SET_Y, 2 );
+  osd_string("                         ");
+
+  osd( CMD_SET_X, 1 );
   osd( CMD_SET_Y, 3 );
+  osd_string(" Frequency:              ");
+  osd( CMD_SET_X, 13 );
   osd_int(getFrequency(channel));
   osd_string( " MHz" );
 
-  osd( CMD_SET_X, 13 );
+  osd( CMD_SET_X, 1 );
   osd( CMD_SET_Y, 4 );
+  osd_string(" Channel  :              ");
+  osd( CMD_SET_X, 13 );
   osd_string(shortNameOfChannel(channel, buffer));
 
-  osd( CMD_SET_X, 13 );
+  osd( CMD_SET_X, 1 );
   osd( CMD_SET_Y, 5 );
+  osd_string(" Name     :              ");
+  osd( CMD_SET_X, 13 );
   osd_string( longNameOfChannel(channel, buffer));
-  
-  batteryMeter(27, 0);
+
+  osd( CMD_SET_X, 1 );
+  osd( CMD_SET_Y, 6 );
+  osd_string("                         ");
+
+  osd( CMD_DISABLE_INVERSE );
+  osd( CMD_DISABLE_FILL );
 }
 
 //******************************************************************************
 //* function: drawAutoScanScreen
 //******************************************************************************
 void drawAutoScanScreen( void ) {
-  osd(CMD_ENABLE_INVERSE);
-
   drawLogo(0, 0);
-
-  osd( CMD_SET_X, 1 );
-  osd( CMD_SET_Y, 3 );
-  osd_string(" Frequency:               ");
-
-  osd( CMD_SET_X, 1 );
-  osd( CMD_SET_Y, 4 );
-  osd_string(" Channel  :               ");
-
-  osd( CMD_SET_X, 1 );
-  osd( CMD_SET_Y, 5 );
-  osd_string(" Name     :               ");
-
-  batteryMeter(27, 0);
+  batteryMeter(25, 0);
 }
 
 //******************************************************************************
@@ -1148,7 +1152,10 @@ void drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value, bo
 void drawOptionsScreen(unsigned char option ) {
   unsigned char i, j;
 
-  drawStartScreen();
+  // Video makes it hard to read the options
+  osd( CMD_DISABLE_VIDEO );
+  
+    drawStartScreen();
   if (option != 0)
     j = option - 1;
   else
@@ -1157,7 +1164,7 @@ void drawOptionsScreen(unsigned char option ) {
   for (i = 0; i < MAX_OPTION_LINES; i++, j++)
   {
     osd( CMD_SET_Y, i + 3 );
-    osd( CMD_SET_X, 1 );
+    osd( CMD_SET_X, 0 );
     if (j >= (MAX_OPTIONS + MAX_COMMANDS))
       j = 0;
     if (j == option) {
@@ -1194,6 +1201,7 @@ void drawOptionsScreen(unsigned char option ) {
   }
   // Make sure that the inverse is disabled even if option was on last line
   osd( CMD_DISABLE_INVERSE );
+  osd( CMD_ENABLE_VIDEO );
 }
 
 //******************************************************************************
@@ -1202,7 +1210,7 @@ void drawOptionsScreen(unsigned char option ) {
 void drawInfoLine( void )
 {
   char buffer[3];
-  osd( CMD_SET_X, 14 );
+  osd( CMD_SET_X, 12 );
   osd( CMD_SET_Y, options[INFO_LINE_POS_OPTION] ? 12 : 0);
   osd_string(shortNameOfChannel(currentChannel, buffer));
   osd_char(OSD_SPACE);
@@ -1211,5 +1219,5 @@ void drawInfoLine( void )
   osd_char(OSD_SPACE);
   osd_char(OSD_ANTENNA);
   osd_int(averageAnalogRead(RSSI_PIN));
-  batteryMeter(27, options[INFO_LINE_POS_OPTION] ? 12 : 0);
+  batteryMeter(25, options[INFO_LINE_POS_OPTION] ? 12 : 0);
 }
