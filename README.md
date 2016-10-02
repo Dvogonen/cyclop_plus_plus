@@ -1,4 +1,4 @@
-#CYCLOP++ (UNDER DEVELOPMENT, NOT YET FUNCTIONAL)
+#CYCLOP++ - Beta Released
 The Quanum Cyclops googles are limited to only the most basic functionality.
 The limitation is however not dependent on the electronic hardware, which is quite powerful.
 By replacing the firmware of the receiver board and adding an inexpensive MinimOSD module, the googles become fully featured. 
@@ -31,7 +31,7 @@ The bottom right pin is VCC. That is the one below the hole with the square pad.
 
 #### Program the Processor
 The firmware on the MinimOSD must be replaced to make it able to talk to the CYCLOPS board.
-The firmware file is called minimosd_for_cyclop.hex and can be downloaded via this link: https://raw.githubusercontent.com/Dvogonen/cyclop_plus_plus/master/minimosd_for_cyclop.hex (right-click and download).
+The firmware file is called minimosd_for_cyclop.hex and can be downloaded via this link: https://raw.githubusercontent.com/Dvogonen/cyclop_plus_plus/master/minimosd_for_cyclop_beta.hex (right-click and download).
 Check the format of the downloaded file. Each line must start with a colon character and only contain letters and numbers and look something like this:
 :100000000C941F030C9447030C9447030C94470370
 
@@ -54,7 +54,7 @@ Use a sharp knife and cut across the trace.
 Use a multimeter to check that there is no longer any connection between (2) and (3).
 
 #### Program the Processor
-The firmware file is called cyclop_plus_plus.hex and can be downloaded via this link: https://raw.githubusercontent.com/Dvogonen/cyclop_plus_osd/master/cyclop_plus_plus.hex (right-click and download).
+The firmware file is called cyclop_plus_plus.hex and can be downloaded via this link: https://raw.githubusercontent.com/Dvogonen/cyclop_plus_osd/master/cyclop_plus_plus_beta.hex (right-click and download).
 Check the format of the downloaded file. Each line must start with a colon character and only contain letters and numbers and look something like this:
 :100000000C941F030C9447030C9447030C94470370
 
@@ -115,7 +115,7 @@ There is no need to change any fuses from their original values (0xE2 0xD9 0x07 
 * 1.2 Timing optimizations. First released version. 2016-06-20
 * 1.3 Configration options added. Screensaver mode added. Battery meter added. 2016-07-15
 * 1.4 SH1106 OLED support added. Button timing improved. Low battery alarm added. 2016-08-20
-* 2.0 OLED code removed, MinimOSD code added. UNDER DEVOLPMENT, NOT YET RELEASED
+* 2.0 OLED code removed, MinimOSD code added. Beta1 2016-10-03
 
 ##License
 The MIT License (MIT)

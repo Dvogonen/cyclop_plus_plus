@@ -115,7 +115,7 @@
 #define LED_ON                    HIGH
 
 // Release information
-#define VER_DATE_STRING           "2016-10-13"
-#define VER_INFO_STRING           "v2.0 by Dvogonen"
+#define VER_DATE_STRING           "2016-10-03"
+#define VER_INFO_STRING           "Beta by Dvogonen"
 
 #endif // cyclop_plus_osd_h
