@@ -1802,7 +1802,6 @@ const char tableOfAllCharacters[13824] PROGMEM = {
 #define CMD_NEWLINE         13  /* Moves cursor to start of the next line      */
 #define CMD_SET_X           14  /* Position X cursor (next char is a parameter)*/
 #define CMD_SET_Y           15  /* Position Y cursor (next char is a parameter)*/
-#define CMD_SET_VIDEO       16  /* Use INVIDEO format for OSD                  */
 
 /*******************************************************************************
    Hardware Defines
@@ -1981,6 +1980,7 @@ void loop()
   static bool activeCommand = false;
   static bool waitingForX = false;
   static bool waitingForY = false;
+  long videoUpdateTimer = 0;
   unsigned char inChar;
 
   // Process serial data
@@ -2007,7 +2007,6 @@ void loop()
           case CMD_NEWLINE:         newLine(); break;
           case CMD_SET_X:           waitingForX = true; break;
           case CMD_SET_Y:           waitingForY = true; break;
-          case CMD_SET_VIDEO:       updateVideoFormat(); break;
           default: break;           // Unknown command - Just skip it
         }
         activeCommand = false;
@@ -2030,5 +2029,11 @@ void loop()
           curY = 0;
       }
     }
+  }
+  // Check if it is time to update the video format
+  if (videoUpdateTimer < millis())
+  {
+    videoUpdateTimer = millis() + 500;
+    updateVideoFormat();
   }
 }
