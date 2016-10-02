@@ -243,11 +243,6 @@ void Max7456::printMax7456Chars(byte chars[], byte size, byte x, byte y, byte bl
   //end character (we're done).
   SPI.transfer(DMDI_ADDRESS_WRITE);
   SPI.transfer(0xff);
-  /*
-  	_regVm0.bits.
-  	SPI.transfer(VM0_ADDRESS_WRITE);
-  	SPI.transfer(0x4c);
-  */
   digitalWrite(_pinCS, HIGH);
 }
 
@@ -308,46 +303,85 @@ void Max7456::clearScreen()
  ******************************************************************************/
 void Max7456::init(byte iPinCS)
 {
+  // Setup Chip Select Pin
   _pinCS = iPinCS;
-  _isActivatedOsd = false;
+  pinMode(_pinCS, OUTPUT);
 
-  _regVm1.whole = 0b01000111;
-  pinMode(iPinCS, OUTPUT);
-  digitalWrite(iPinCS, HIGH); //disable device
-  delay(100); //power up time
+  // Hardware boot time (Really needed ?)
+  delay(100);
 
+  // Reset All registers to default and clear video memory
+  digitalWrite(_pinCS, HIGH); // Strange safety (Needed?)
   digitalWrite(_pinCS, LOW);
-  SPI.transfer(VM0_ADDRESS_WRITE);
-
-  _regVm0.whole = 0x00;
-  _regVm0.bits.videoSelect = 1; //1=PAL, 0=NTSC
+  _regVm0.bits.videoSelect = 1; //1=PAL, 0=NTSC (Is PAL needed during soft reset?)
   _regVm0.bits.softwareResetBit = 1;
+  SPI.transfer(VM0_ADDRESS_WRITE);
   SPI.transfer(_regVm0.whole);
   digitalWrite(_pinCS, HIGH);
-  delay(500);
 
-  digitalWrite(_pinCS, LOW);
+  // Wait for the reset to complete
+  delay(100);  // Probably way to long
+
+  // Set class global variables
+  _isActivatedOsd = false;
+
+  // Set shadow registers to default values
   for (int x = 0 ; x < 16 ; x++)
-  {
-    _regRb[x].whole = 0x00;
-    // _regRb[x].bits.characterWhiteLevel = 2;  // 90%
-    _regRb[x].bits.characterWhiteLevel = 1;     // 100%
-    SPI.transfer(x + RB0_ADDRESS_WRITE);
-    SPI.transfer(_regRb[x].whole);
-  }
+    _regRb[x].whole = 0b00000001;
+  _regVm0.whole =   0b00000000;
+  _regVm1.whole =   0b01000111;
+  _regHos.whole =   0b00100000;
+  _regVos.whole =   0b00010000;
+  _regDmm.whole =   0b00000000;
+  _regDmah.whole =  0b00000000;
+  _regDmal =        0b00000000;
+  _regDmdi =        0b00000000;
+  _regCmm =         0b00000000;
+  _regCmah =        0b00000000;
+  _regCmal =        0b00000000;
+  _regCmdi.whole =  0b00000000;
+  _regOsdm.whole =  0b00011011;
+  _regStat.whole =  0b00000000;  // Read only, value does not matter
+  _regDmdo =        0b00000000;  // Read only, value does not matter
+  _regCmdo.whole =  0b00000000;  // Read only, value does not matter
 
-  _regVm0.whole = 0x00;
+  // Fetch OSDBL register value. Bits 0-3 have no default values
+  digitalWrite(_pinCS, LOW);
+  SPI.transfer(OSDBL_ADDRESS_READ);
+  _regOsdbl.whole = SPI.transfer(0x00);
+  digitalWrite(_pinCS, HIGH);
+
+  // Set video format and vertical write synch
+  digitalWrite(_pinCS, LOW);
+  _regVm0.bits.videoSelect = 1;      //1=PAL, 0=NTSC
   _regVm0.bits.verticalSynch = 1;
-
+  _regVm0.bits.softwareResetBit = 0;
   SPI.transfer(VM0_ADDRESS_WRITE);
   SPI.transfer(_regVm0.whole);
+  digitalWrite(_pinCS, HIGH);
 
-  //  digitalWrite(_pinCS,HIGH);
-  //
-  //  digitalWrite(_pinCS,LOW);
-  //SPI.transfer(VM1_ADDRESS_WRITE);
-  //SPI.transfer(0x0C);
+  // Set sharpness parameters
+  digitalWrite(_pinCS, LOW);
+  _regOsdm.bits.osdInsertionMuxSwitchingTime = 0b010; //000= Max sharp, 111= Least sharp
+  _regOsdm.bits.osdRiseAndFallTime = 0b010;           //000= Max sharp, 111= Least sharp
+  SPI.transfer(OSDM_ADDRESS_WRITE);
+  SPI.transfer(_regOsdm.whole);
+  digitalWrite(_pinCS, HIGH);
 
+  // Set row white levels
+  for (int x = 0 ; x < 16 ; x++)
+  {
+    digitalWrite(_pinCS, LOW);
+    _regRb[x].bits.characterWhiteLevel = 0;    // 0=120%, 1=100%, 2=90%, 3=80%
+    SPI.transfer(x + RB0_ADDRESS_WRITE);
+    SPI.transfer(_regRb[x].whole);
+    digitalWrite(_pinCS, HIGH);
+  }
+  // Enable automatic OSD black level control
+  digitalWrite(_pinCS, LOW);
+  _regOsdbl.bits.osdImageBlackLevelControl = 0; //0=Enable, 1=Disable
+  SPI.transfer(OSDBL_ADDRESS_WRITE);
+  SPI.transfer(_regOsdbl.whole);
   digitalWrite(_pinCS, HIGH);
 }
 
