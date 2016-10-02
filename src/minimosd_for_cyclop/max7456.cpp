@@ -5,9 +5,9 @@
 /******************************************************************************
    Function: Max7456::Max7456
  ******************************************************************************/
-Max7456::Max7456(byte pinCS, byte videoFormat)
+Max7456::Max7456(byte pinCS)
 {
-  this->init(pinCS, videoFormat);
+  this->init(pinCS);
 }
 
 /******************************************************************************
@@ -306,7 +306,7 @@ void Max7456::clearScreen()
 /******************************************************************************
    Function: Max7456::init
  ******************************************************************************/
-void Max7456::init(byte iPinCS, byte videoFormat)
+void Max7456::init(byte iPinCS)
 {
   _pinCS = iPinCS;
   _isActivatedOsd = false;
@@ -320,7 +320,7 @@ void Max7456::init(byte iPinCS, byte videoFormat)
   SPI.transfer(VM0_ADDRESS_WRITE);
 
   _regVm0.whole = 0x00;
-  _regVm0.bits.videoSelect = videoFormat; //1=PAL, 0=NTSC
+  _regVm0.bits.videoSelect = 1; //1=PAL, 0=NTSC
   _regVm0.bits.softwareResetBit = 1;
   SPI.transfer(_regVm0.whole);
   digitalWrite(_pinCS, HIGH);
@@ -446,7 +446,7 @@ byte Max7456::getInVideoFormat( void )
 }
 
 /******************************************************************************
-   Function: Max7456::setVideoFormat
+   Function: Max7456::setOutVideoFormat
  ******************************************************************************/
 void Max7456::setOutVideoFormat( byte newVideoFormat )
 {

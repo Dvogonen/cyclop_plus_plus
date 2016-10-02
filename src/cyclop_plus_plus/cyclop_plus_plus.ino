@@ -67,6 +67,7 @@
 #define CMD_NEWLINE         13  /* Moves cursor to start of the next line      */
 #define CMD_SET_X           14  /* Position X cursor (next char is a parameter)*/
 #define CMD_SET_Y           15  /* Position Y cursor (next char is a parameter)*/
+#define CMD_SET_VIDEO       16  /* Use INVIDEO format for OSD                  */
 
 //******************************************************************************
 //* Character constants
@@ -949,7 +950,6 @@ void drawLogo( unsigned char xPos, unsigned char yPos) {
   osd( CMD_SET_Y, yPos );
 
   // Display Logo
-  osd(CMD_ENABLE_INVERSE);
   osd_char( OSD_LOGO );
   osd_char( OSD_LOGO + 1 );
   osd_char( OSD_LOGO + 2 );
@@ -968,7 +968,6 @@ void drawLogo( unsigned char xPos, unsigned char yPos) {
   osd_char( OSD_LOGO + 13 );
   osd_char( OSD_LOGO + 14 );
   osd_char( OSD_LOGO + 15 );
-  osd(CMD_DISABLE_INVERSE);
 }
 
 //******************************************************************************

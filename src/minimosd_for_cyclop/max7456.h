@@ -27,20 +27,18 @@ class Max7456
         Constructor
         Initialize communications and device
         @param pinCS : pin ~CS of the arduino where max7456 is plugged.
-        @param videoFormat : 0=NTSC, 1=PAL
      **/
-    Max7456(byte pinCS, byte videoFormat);
+    Max7456(byte pinCS);
 
     /**
         Initialize communications and device
         @param pinCS : pin ~CS of the arduino where max7456 is plugged.
-        @param videoFormat : 0=NTSC, 1=PAL
         @code
         Max7456 osd;
         osd.init(9); //Note it's that it's the same than usinge constructor Max7456(byte pinCS).
         @endcode
      **/
-    void init(byte pinCS, byte videoFormat);
+    void init(byte pinCS);
 
     /**
        Set the base time for blink.
