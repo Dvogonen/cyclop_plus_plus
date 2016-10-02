@@ -66,9 +66,9 @@ union REG_VM0
     unsigned char enableOSD : 1;
 
     /* Synch Select Mode
-       0x (0 ou 1) = Autosynch select
-       10 (2) = external
-       11 (3) = internal  */
+       0x (0 or 1) = Internal when LOS, external otherwise
+       10 (2)      = external
+       11 (3)      = internal  */
     unsigned char synchSelect : 2;
 
     /* Video Standard Select

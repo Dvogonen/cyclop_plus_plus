@@ -136,8 +136,8 @@ class Max7456
 
     /* Converts a CARACT character to a byte array representation.
        car : the CARACT character
-       return :  the byte array representing the character (54 bytes long) */
-    static byte* CARACT2ByteArray(const CARACT car);
+       array :  the byte array representing the character (54 bytes long) */
+    void CARACT2ByteArray(const CARACT car, byte *array);
 
     /* Converts a byte array to a CARACT character.
        array : the byte array representing the character (54 bytes long)

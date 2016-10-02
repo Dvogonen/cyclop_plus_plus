@@ -1,9 +1,9 @@
 /******************************************************************************
    File: max7456registers.cpp
-   
+
    Original Author: Benoit, 10 oct. 2012
    Latest Author:   Kjell Kernen, 13 oct. 2016
-   
+
    Copyright (c) 2016 Kjell Kernen (Dvogonen)
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -54,19 +54,18 @@ void Max7456::setBlinkParams(byte blinkBase, byte blinkDC)
  ******************************************************************************/
 void Max7456::setDisplayOffsets(byte horizontal, byte vertical)
 {
-  _regHos.byte = 0;
-  _regVos.byte = 0;
-
-  _regHos.bits.horizontalPositionOffset = horizontal;
-  _regVos.bits.verticalPositionOffset = vertical;
-
   digitalWrite(_pinCS, LOW);
+  _regHos.byte = 0;
+  _regHos.bits.horizontalPositionOffset = horizontal;
   SPI.transfer(HOS_ADDRESS_WRITE);
   SPI.transfer(_regHos.byte);
+  digitalWrite(_pinCS, HIGH);
 
+  digitalWrite(_pinCS, LOW);
   SPI.transfer(VOS_ADDRESS_WRITE);
+  _regVos.byte = 0;
+  _regVos.bits.verticalPositionOffset = vertical;
   SPI.transfer(_regVos.byte);
-
   digitalWrite(_pinCS, HIGH);
 }
 
@@ -308,20 +307,21 @@ void Max7456::print(double value, byte x, byte y, byte before, byte after, byte 
  ******************************************************************************/
 void Max7456::clearScreen()
 {
-  _regDmm.bits.clearDisplayMemory = 1 ;
 
   digitalWrite(_pinCS, LOW);
+  _regDmm.bits.clearDisplayMemory = 1 ;
   SPI.transfer(DMM_ADDRESS_WRITE);
   SPI.transfer(_regDmm.byte);
+  digitalWrite(_pinCS, HIGH);
 
-  /*wait for operation to be complete.
-    while (_regDmm.bits.clearDisplayMemory == 1 )
-    {
+  /* wait for operation to complete */
+  while (_regDmm.bits.clearDisplayMemory == 1 )
+  {
+    digitalWrite(_pinCS, LOW);
     SPI.transfer(DMM_ADDRESS_READ);
     _regDmm.byte = SPI.transfer(0x00);
-    }
-  */
-  digitalWrite(_pinCS, HIGH); //disable device
+    digitalWrite(_pinCS, HIGH);
+  }
 }
 
 /******************************************************************************
@@ -337,16 +337,16 @@ void Max7456::init(byte iPinCS)
   delay(100);
 
   // Reset All registers to default and clear video memory
-  digitalWrite(_pinCS, HIGH); // Strange safety (Needed?)
+  digitalWrite(_pinCS, HIGH); // Safety (Needed?)
   digitalWrite(_pinCS, LOW);
-  _regVm0.bits.videoSelect = 1; //1=PAL, 0=NTSC (Is PAL needed during soft reset?)
   _regVm0.bits.softwareResetBit = 1;
   SPI.transfer(VM0_ADDRESS_WRITE);
   SPI.transfer(_regVm0.byte);
   digitalWrite(_pinCS, HIGH);
+  _regVm0.bits.softwareResetBit = 0; // he real register bit is reset automatically
 
   // Wait for the reset to complete
-  delay(100);  // Probably way to long
+  delay(100);  // Probably to long
 
   // Set class global variables
   _isActivatedOsd = false;
@@ -354,6 +354,7 @@ void Max7456::init(byte iPinCS)
   // Set shadow registers to default values
   for (int x = 0 ; x < 16 ; x++)
     _regRb[x].byte = 0b00000001;
+
   _regVm0.byte =   0b00000000;
   _regVm1.byte =   0b01000111;
   _regHos.byte =   0b00100000;
@@ -381,7 +382,6 @@ void Max7456::init(byte iPinCS)
   digitalWrite(_pinCS, LOW);
   _regVm0.bits.videoSelect = 1;      //1=PAL, 0=NTSC
   _regVm0.bits.verticalSynch = 1;
-  _regVm0.bits.softwareResetBit = 0;
   SPI.transfer(VM0_ADDRESS_WRITE);
   SPI.transfer(_regVm0.byte);
   digitalWrite(_pinCS, HIGH);
@@ -418,32 +418,21 @@ void Max7456::activateOSD(bool act)
 {
   if (_isActivatedOsd != act)
   {
-    _regVm0.bits.videoSelect = 1;
-    if (act)
-      _regVm0.bits.enableOSD = 1;
-    else
-      _regVm0.bits.enableOSD = 0;
-
     digitalWrite(_pinCS, LOW);
+    _regVm0.bits.enableOSD = act ? 1 : 0; // Enable OSD
     SPI.transfer(VM0_ADDRESS_WRITE);
     SPI.transfer(_regVm0.byte);
     digitalWrite(_pinCS, HIGH);
 
+    // Enable automatic black level controll
     if ( act )
     {
       digitalWrite(_pinCS, LOW);
-      SPI.transfer(OSDBL_ADDRESS_READ);
-      _regOsdbl.byte = SPI.transfer(0);
-      digitalWrite(_pinCS, HIGH);
-
-      _regOsdbl.bits.osdImageBlackLevelControl = 0;  // Automatic black level control
-
-      digitalWrite(_pinCS, LOW);
+      _regOsdbl.bits.osdImageBlackLevelControl = 0;  // 0=Enable, 1=Disable
       SPI.transfer(OSDBL_ADDRESS_WRITE);
       SPI.transfer(_regOsdbl.byte);
       digitalWrite(_pinCS, HIGH);
     }
-
     _isActivatedOsd = act;
   }
 }
@@ -456,7 +445,7 @@ void Max7456::activateExternalVideo(bool activExtVid)
   if (!activExtVid)
     _regVm0.bits.synchSelect = 3; //11
   else
-    _regVm0.bits.synchSelect = 0; //0
+    _regVm0.bits.synchSelect = 0; //00
 
   digitalWrite(_pinCS, LOW);
   SPI.transfer(VM0_ADDRESS_WRITE);
@@ -467,10 +456,8 @@ void Max7456::activateExternalVideo(bool activExtVid)
 /******************************************************************************
    Function: Max7456::CARACT2ByteArray
  ******************************************************************************/
-byte* Max7456::CARACT2ByteArray(const CARACT car)
+void Max7456::CARACT2ByteArray(const CARACT car, byte *array)
 {
-  byte *array = NULL;
-  array = new charact;
   for (int i = 0 ; i < 54 ; i++)
     array[i] = car.byte[i];
 
@@ -533,10 +520,10 @@ void Max7456::setOutVideoFormat( byte newVideoFormat )
   digitalWrite(_pinCS, HIGH);
 
   // Switch OSD video format
-  if (((byte)_regVm0.bits.videoSelect) != newVideoFormat )
+  if (_regVm0.bits.videoSelect != newVideoFormat )
   {
-    _regVm0.bits.videoSelect = newVideoFormat & 0x01;
     digitalWrite(_pinCS, LOW);
+    _regVm0.bits.videoSelect = newVideoFormat;
     SPI.transfer(VM0_ADDRESS_WRITE);
     SPI.transfer(_regVm0.byte);
     digitalWrite(_pinCS, HIGH);

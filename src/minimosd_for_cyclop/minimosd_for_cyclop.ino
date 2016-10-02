@@ -11,7 +11,7 @@
   to control the video circuit.
 
   Author: Kjell Kernen
-  
+
   Copyright (c) 2016 Kjell Kernen (Dvogonen)
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -1809,6 +1809,7 @@ const char tableOfAllCharacters[13824] PROGMEM = {
  *******************************************************************************/
 #define CS_PIN      6   // SPI Chip Select pin connected to Max7456
 #define MAX_LINES   13  // For both NTSC and PAL
+#define VIDEO_NONE  2   // No video format
 #define VIDEO_PAL   1   // PAL video format
 #define VIDEO_NTSC  0   // NTSC video format
 
@@ -1826,7 +1827,6 @@ bool inverseState = false;
 bool fillState = false;
 bool osdState = true;
 bool inVideoState = true;
-byte outVideoFormat = VIDEO_PAL;
 
 uint8_t curX = 0;        // May be directly manipulated
 uint8_t curY = 0;        // May be directly manipulated
@@ -1902,17 +1902,6 @@ void setInVideoState( bool newState )
 }
 
 /*******************************************************************************
-   Function: setOutVideoFormat
- *******************************************************************************/
-void setOutVideoFormat( byte newState )
-{
-  if ( newState != outVideoFormat) {
-    outVideoFormat = newState;
-    osd.setOutVideoFormat( outVideoFormat );
-  }
-}
-
-/*******************************************************************************
    Function: updateVideoFormat
            : checks the incomming video format.
            : switches OSD video format if it differs from invideo format
@@ -1921,11 +1910,9 @@ void setOutVideoFormat( byte newState )
  *******************************************************************************/
 void updateVideoFormat( void )
 {
-  byte tempVideoFormat = osd.getInVideoFormat();
-  if (( tempVideoFormat == VIDEO_PAL ) || ( tempVideoFormat == VIDEO_NTSC )) {
-    outVideoFormat = tempVideoFormat;
-    setOutVideoFormat( outVideoFormat );
-  }
+  byte videoFormat = osd.getInVideoFormat();
+  if (( videoFormat == VIDEO_PAL ) || ( videoFormat == VIDEO_NTSC ))
+    osd.setOutVideoFormat( videoFormat );
 }
 
 /*******************************************************************************
