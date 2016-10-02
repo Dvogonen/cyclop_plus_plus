@@ -169,9 +169,9 @@ unsigned char lastClick = NO_CLICK;
 unsigned char currentChannel = 0;
 unsigned char lastChannel = 0;
 unsigned char ledState = LED_ON;
-unsigned long forceDisplayTimer;
 unsigned long displayUpdateTimer = 0;
 unsigned long eepromSaveTimer = 0;
+unsigned long forceDisplayTimer = 0;
 unsigned long pulseTimer = 0;
 unsigned long alarmTimer = 0;
 unsigned char alarmSoundOn = 0;
@@ -179,6 +179,7 @@ unsigned int  alarmOnPeriod = 0;
 unsigned int  alarmOffPeriod = 0;
 unsigned char options[MAX_OPTIONS];
 unsigned char saveScreenActive = 0;
+unsigned char screenCleaning = 0;
 
 //******************************************************************************
 //* function: setup
@@ -257,7 +258,7 @@ void loop()
       osd( CMD_CLEAR_SCREEN );
       drawChannelScreen(currentChannel);
       delay(4000);
-      displayUpdateTimer = millis() +  RSSI_STABILITY_DELAY_MS ;
+      screenCleaning = 1;
       break;
 
     case LONG_CLICK:      // auto search
@@ -266,36 +267,47 @@ void loop()
       currentChannel = bestChannelMatch(autoScan(getFrequency(currentChannel)));
       drawChannelScreen(currentChannel);
       delay(4000);
-      displayUpdateTimer = millis() +  RSSI_STABILITY_DELAY_MS ;
+      screenCleaning = 1;
       break;
 
     case SINGLE_CLICK: // up the frequency
       currentChannel = nextChannel( currentChannel );
       setRTC6715Frequency(getFrequency(currentChannel));
       displayUpdateTimer = 0;
-      forceDisplayTimer = millis() + FORCED_SCREEN_UPDATE_MS;
+      screenCleaning = 1;
       break;
 
     case DOUBLE_CLICK:  // down the frequency
       currentChannel = previousChannel( currentChannel );
       setRTC6715Frequency(getFrequency(currentChannel));
       displayUpdateTimer = 0;
-      forceDisplayTimer = millis() + FORCED_SCREEN_UPDATE_MS;
+      screenCleaning = 1;
       break;
   }
   // Reset screensaver timer after each key click
   if  (lastClick != NO_CLICK )
     forceDisplayTimer = millis() + FORCED_SCREEN_UPDATE_MS;
 
+  //
+  if (screenCleaning)
+  {
+    screenCleaning = 0;
+    osd(CMD_CLEAR_SCREEN);
+    displayUpdateTimer = 0;
+  }
+
   // Check if it is time for a display update
   if ((displayUpdateTimer < millis())) {
-    osd(CMD_ENABLE_OSD);
     displayUpdateTimer = millis() + 1000;
-    osd(CMD_CLEAR_SCREEN);
     if ( options[INFO_LINE_OPTION] || (forceDisplayTimer > millis()))
+    {
       drawInfoLine();
+    }
     else
+    {
+      osd(CMD_CLEAR_SCREEN);
       saveScreenActive = 1;
+    }
   }
 
   // Check if EEPROM needs a save. Reduce EEPROM writes by not saving too often
@@ -950,6 +962,7 @@ void drawLogo( unsigned char xPos, unsigned char yPos) {
   osd( CMD_SET_Y, yPos );
 
   // Display Logo
+  osd(CMD_ENABLE_INVERSE);
   osd_char( OSD_LOGO );
   osd_char( OSD_LOGO + 1 );
   osd_char( OSD_LOGO + 2 );
@@ -968,6 +981,7 @@ void drawLogo( unsigned char xPos, unsigned char yPos) {
   osd_char( OSD_LOGO + 13 );
   osd_char( OSD_LOGO + 14 );
   osd_char( OSD_LOGO + 15 );
+  osd(CMD_DISABLE_INVERSE);
 }
 
 //******************************************************************************
@@ -1008,30 +1022,30 @@ void drawChannelScreen( unsigned char channel) {
   osd( CMD_ENABLE_INVERSE );
 
   osd( CMD_SET_X, 1 );
-  osd( CMD_SET_Y, 2 );
+  osd( CMD_SET_Y, 3 );
   osd_string("                         ");
 
   osd( CMD_SET_X, 1 );
-  osd( CMD_SET_Y, 3 );
+  osd( CMD_SET_Y, 4 );
   osd_string(" Frequency:              ");
   osd( CMD_SET_X, 13 );
   osd_int(getFrequency(channel));
   osd_string( " MHz" );
 
   osd( CMD_SET_X, 1 );
-  osd( CMD_SET_Y, 4 );
+  osd( CMD_SET_Y, 5 );
   osd_string(" Channel  :              ");
   osd( CMD_SET_X, 13 );
   osd_string(shortNameOfChannel(channel, buffer));
 
   osd( CMD_SET_X, 1 );
-  osd( CMD_SET_Y, 5 );
+  osd( CMD_SET_Y, 6 );
   osd_string(" Name     :              ");
   osd( CMD_SET_X, 13 );
   osd_string( longNameOfChannel(channel, buffer));
 
   osd( CMD_SET_X, 1 );
-  osd( CMD_SET_Y, 6 );
+  osd( CMD_SET_Y, 7 );
   osd_string("                         ");
 
   osd( CMD_DISABLE_INVERSE );
@@ -1153,8 +1167,8 @@ void drawOptionsScreen(unsigned char option ) {
 
   // Video makes it hard to read the options
   osd( CMD_DISABLE_VIDEO );
-  
-    drawStartScreen();
+
+  drawStartScreen();
   if (option != 0)
     j = option - 1;
   else
@@ -1209,6 +1223,7 @@ void drawOptionsScreen(unsigned char option ) {
 void drawInfoLine( void )
 {
   char buffer[3];
+
   osd( CMD_SET_X, 12 );
   osd( CMD_SET_Y, options[INFO_LINE_POS_OPTION] ? 12 : 0);
   osd_string(shortNameOfChannel(currentChannel, buffer));

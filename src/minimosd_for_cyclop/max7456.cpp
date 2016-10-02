@@ -368,6 +368,22 @@ void Max7456::activateOSD(bool act)
     SPI.transfer(VM0_ADDRESS_WRITE);
     SPI.transfer(_regVm0.whole);
     digitalWrite(_pinCS, HIGH);
+
+    if ( act )
+    {
+      digitalWrite(_pinCS, LOW);
+      SPI.transfer(OSDBL_ADDRESS_READ);
+      _regOsdbl.whole = SPI.transfer(0);
+      digitalWrite(_pinCS, HIGH);
+
+      _regOsdbl.bits.osdImageBlackLevelControl = 0;  // Automatic black level control
+
+      digitalWrite(_pinCS, LOW);
+      SPI.transfer(OSDBL_ADDRESS_WRITE);
+      SPI.transfer(_regOsdbl.whole);
+      digitalWrite(_pinCS, HIGH);
+    }
+
     _isActivatedOsd = act;
   }
 }
