@@ -7,9 +7,11 @@
   Without those projects CYCLOP++ would not have been created. All possible
   credit goes to the two mentioned projects and their contributors.
 
-  The max7456 library by theboredengineers with a few changes by Dvogonen is
-  used to control the video circuit.
+  The max7456 library by theboredengineers with changes by Dvogonen is used
+  to control the video circuit.
 
+  Author: Kjell Kernen
+  
   Copyright (c) 2016 Kjell Kernen (Dvogonen)
 
   Permission is hereby granted, free of charge, to any person obtaining a copy

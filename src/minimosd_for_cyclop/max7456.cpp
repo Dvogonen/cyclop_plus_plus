@@ -1,3 +1,29 @@
+/******************************************************************************
+   File: max7456registers.cpp
+   
+   Original Author: Benoit, 10 oct. 2012
+   Latest Author:   Kjell Kernen, 13 oct. 2016
+   
+   Copyright (c) 2016 Kjell Kernen (Dvogonen)
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+ ******************************************************************************/
 #include "max7456.h"
 #include <Arduino.h>
 #include <SPI.h>
@@ -19,7 +45,7 @@ void Max7456::setBlinkParams(byte blinkBase, byte blinkDC)
   _regVm1.bits.blinkingDutyCycle = blinkDC;
   digitalWrite(_pinCS, LOW);
   SPI.transfer(VM1_ADDRESS_WRITE);
-  SPI.transfer(_regVm1.whole);
+  SPI.transfer(_regVm1.byte);
   digitalWrite(_pinCS, HIGH);
 }
 
@@ -28,18 +54,18 @@ void Max7456::setBlinkParams(byte blinkBase, byte blinkDC)
  ******************************************************************************/
 void Max7456::setDisplayOffsets(byte horizontal, byte vertical)
 {
-  _regHos.whole = 0;
-  _regVos.whole = 0;
+  _regHos.byte = 0;
+  _regVos.byte = 0;
 
   _regHos.bits.horizontalPositionOffset = horizontal;
   _regVos.bits.verticalPositionOffset = vertical;
 
   digitalWrite(_pinCS, LOW);
   SPI.transfer(HOS_ADDRESS_WRITE);
-  SPI.transfer(_regHos.whole);
+  SPI.transfer(_regHos.byte);
 
   SPI.transfer(VOS_ADDRESS_WRITE);
-  SPI.transfer(_regVos.whole);
+  SPI.transfer(_regVos.byte);
 
   digitalWrite(_pinCS, HIGH);
 }
@@ -69,15 +95,15 @@ void Max7456::sendCharacter(const charact chara, byte pos)
     SPI.transfer(CMDI_ADDRESS_WRITE);
     SPI.transfer(chara[i]);
   }
-  _regCmm = 0xA0; //To write the NVM array
+  _regCmm.byte = 0xA0; //To write the NVM array
   SPI.transfer(CMM_ADDRESS_WRITE);
-  SPI.transfer(_regCmm);
+  SPI.transfer(_regCmm.byte);
   //while STAT[5] is not good, we wait.
   _regStat.bits.characterMemoryStatus = 1;
   while (  _regStat.bits.characterMemoryStatus == 1)
   {
     SPI.transfer(STAT_ADDRESS_READ);
-    _regStat.whole = SPI.transfer(0x00);
+    _regStat.byte = SPI.transfer(0x00);
   }
   digitalWrite(_pinCS, HIGH);
 }
@@ -99,9 +125,9 @@ void Max7456::getCharacter(charact chara, byte x, byte y)
   digitalWrite(_pinCS, LOW);
   SPI.transfer(CMAH_ADDRESS_WRITE);
   SPI.transfer(charAddress);
-  _regCmm = 0x50; //To read from the NVM array
+  _regCmm.byte = 0x50; //To read from the NVM array
   SPI.transfer(CMM_ADDRESS_WRITE);
-  SPI.transfer(_regCmm);
+  SPI.transfer(_regCmm.byte);
 
   for (byte i = 0 ; i < 54 ; i++)
   {
@@ -219,14 +245,14 @@ void Max7456::printMax7456Chars(byte chars[], byte size, byte x, byte y, byte bl
   posAddressHI = posAddress >> 8;
   posAddressLO = posAddress;
 
-  _regDmm.whole = 0x01;
+  _regDmm.byte = 0x01;
 
   _regDmm.bits.INV = inv;
   _regDmm.bits.BLK = blink;
 
   digitalWrite(_pinCS, LOW);
   SPI.transfer(DMM_ADDRESS_WRITE);
-  SPI.transfer(_regDmm.whole);
+  SPI.transfer(_regDmm.byte);
 
   SPI.transfer(DMAH_ADDRESS_WRITE); // set start address high
   SPI.transfer(posAddressHI);
@@ -286,13 +312,13 @@ void Max7456::clearScreen()
 
   digitalWrite(_pinCS, LOW);
   SPI.transfer(DMM_ADDRESS_WRITE);
-  SPI.transfer(_regDmm.whole);
+  SPI.transfer(_regDmm.byte);
 
   /*wait for operation to be complete.
     while (_regDmm.bits.clearDisplayMemory == 1 )
     {
     SPI.transfer(DMM_ADDRESS_READ);
-    _regDmm.whole = SPI.transfer(0x00);
+    _regDmm.byte = SPI.transfer(0x00);
     }
   */
   digitalWrite(_pinCS, HIGH); //disable device
@@ -316,7 +342,7 @@ void Max7456::init(byte iPinCS)
   _regVm0.bits.videoSelect = 1; //1=PAL, 0=NTSC (Is PAL needed during soft reset?)
   _regVm0.bits.softwareResetBit = 1;
   SPI.transfer(VM0_ADDRESS_WRITE);
-  SPI.transfer(_regVm0.whole);
+  SPI.transfer(_regVm0.byte);
   digitalWrite(_pinCS, HIGH);
 
   // Wait for the reset to complete
@@ -327,28 +353,28 @@ void Max7456::init(byte iPinCS)
 
   // Set shadow registers to default values
   for (int x = 0 ; x < 16 ; x++)
-    _regRb[x].whole = 0b00000001;
-  _regVm0.whole =   0b00000000;
-  _regVm1.whole =   0b01000111;
-  _regHos.whole =   0b00100000;
-  _regVos.whole =   0b00010000;
-  _regDmm.whole =   0b00000000;
-  _regDmah.whole =  0b00000000;
-  _regDmal =        0b00000000;
-  _regDmdi =        0b00000000;
-  _regCmm =         0b00000000;
-  _regCmah =        0b00000000;
-  _regCmal =        0b00000000;
-  _regCmdi.whole =  0b00000000;
-  _regOsdm.whole =  0b00011011;
-  _regStat.whole =  0b00000000;  // Read only, value does not matter
-  _regDmdo =        0b00000000;  // Read only, value does not matter
-  _regCmdo.whole =  0b00000000;  // Read only, value does not matter
+    _regRb[x].byte = 0b00000001;
+  _regVm0.byte =   0b00000000;
+  _regVm1.byte =   0b01000111;
+  _regHos.byte =   0b00100000;
+  _regVos.byte =   0b00010000;
+  _regDmm.byte =   0b00000000;
+  _regDmah.byte =  0b00000000;
+  _regDmal.byte =  0b00000000;
+  _regDmdi.byte =  0b00000000;
+  _regCmm.byte =   0b00000000;
+  _regCmah.byte =  0b00000000;
+  _regCmal.byte =  0b00000000;
+  _regCmdi.byte =  0b00000000;
+  _regOsdm.byte =  0b00011011;
+  _regStat.byte =  0b00000000;  // Read only, value does not matter
+  _regDmdo.byte =  0b00000000;  // Read only, value does not matter
+  _regCmdo.byte =  0b00000000;  // Read only, value does not matter
 
   // Fetch OSDBL register value. Bits 0-3 have no default values
   digitalWrite(_pinCS, LOW);
   SPI.transfer(OSDBL_ADDRESS_READ);
-  _regOsdbl.whole = SPI.transfer(0x00);
+  _regOsdbl.byte = SPI.transfer(0x00);
   digitalWrite(_pinCS, HIGH);
 
   // Set video format and vertical write synch
@@ -357,7 +383,7 @@ void Max7456::init(byte iPinCS)
   _regVm0.bits.verticalSynch = 1;
   _regVm0.bits.softwareResetBit = 0;
   SPI.transfer(VM0_ADDRESS_WRITE);
-  SPI.transfer(_regVm0.whole);
+  SPI.transfer(_regVm0.byte);
   digitalWrite(_pinCS, HIGH);
 
   // Set sharpness parameters
@@ -365,7 +391,7 @@ void Max7456::init(byte iPinCS)
   _regOsdm.bits.osdInsertionMuxSwitchingTime = 0b010; //000= Max sharp, 111= Least sharp
   _regOsdm.bits.osdRiseAndFallTime = 0b010;           //000= Max sharp, 111= Least sharp
   SPI.transfer(OSDM_ADDRESS_WRITE);
-  SPI.transfer(_regOsdm.whole);
+  SPI.transfer(_regOsdm.byte);
   digitalWrite(_pinCS, HIGH);
 
   // Set row white levels
@@ -374,14 +400,14 @@ void Max7456::init(byte iPinCS)
     digitalWrite(_pinCS, LOW);
     _regRb[x].bits.characterWhiteLevel = 0;    // 0=120%, 1=100%, 2=90%, 3=80%
     SPI.transfer(x + RB0_ADDRESS_WRITE);
-    SPI.transfer(_regRb[x].whole);
+    SPI.transfer(_regRb[x].byte);
     digitalWrite(_pinCS, HIGH);
   }
   // Enable automatic OSD black level control
   digitalWrite(_pinCS, LOW);
   _regOsdbl.bits.osdImageBlackLevelControl = 0; //0=Enable, 1=Disable
   SPI.transfer(OSDBL_ADDRESS_WRITE);
-  SPI.transfer(_regOsdbl.whole);
+  SPI.transfer(_regOsdbl.byte);
   digitalWrite(_pinCS, HIGH);
 }
 
@@ -400,21 +426,21 @@ void Max7456::activateOSD(bool act)
 
     digitalWrite(_pinCS, LOW);
     SPI.transfer(VM0_ADDRESS_WRITE);
-    SPI.transfer(_regVm0.whole);
+    SPI.transfer(_regVm0.byte);
     digitalWrite(_pinCS, HIGH);
 
     if ( act )
     {
       digitalWrite(_pinCS, LOW);
       SPI.transfer(OSDBL_ADDRESS_READ);
-      _regOsdbl.whole = SPI.transfer(0);
+      _regOsdbl.byte = SPI.transfer(0);
       digitalWrite(_pinCS, HIGH);
 
       _regOsdbl.bits.osdImageBlackLevelControl = 0;  // Automatic black level control
 
       digitalWrite(_pinCS, LOW);
       SPI.transfer(OSDBL_ADDRESS_WRITE);
-      SPI.transfer(_regOsdbl.whole);
+      SPI.transfer(_regOsdbl.byte);
       digitalWrite(_pinCS, HIGH);
     }
 
@@ -434,7 +460,7 @@ void Max7456::activateExternalVideo(bool activExtVid)
 
   digitalWrite(_pinCS, LOW);
   SPI.transfer(VM0_ADDRESS_WRITE);
-  SPI.transfer(_regVm0.whole);
+  SPI.transfer(_regVm0.byte);
   digitalWrite(_pinCS, HIGH);
 }
 
@@ -446,7 +472,7 @@ byte* Max7456::CARACT2ByteArray(const CARACT car)
   byte *array = NULL;
   array = new charact;
   for (int i = 0 ; i < 54 ; i++)
-    array[i] = car.whole[i];
+    array[i] = car.byte[i];
 
   return array;
 }
@@ -458,7 +484,7 @@ CARACT Max7456::byteArray2CARACT(const charact array)
 {
   CARACT car;
   for (int i = 0 ; i < 54 ; i++)
-    car.whole[i] = array[i];
+    car.byte[i] = array[i];
 
   return car;
 }
@@ -487,7 +513,7 @@ byte Max7456::getInVideoFormat( void )
 {
   digitalWrite(_pinCS, LOW);
   SPI.transfer(STAT_ADDRESS_READ);
-  _regStat.whole = SPI.transfer(0x00);
+  _regStat.byte = SPI.transfer(0x00);
   digitalWrite(_pinCS, HIGH);
 
   if (_regStat.bits.NTSCDetected ) return 0;
@@ -503,7 +529,7 @@ void Max7456::setOutVideoFormat( byte newVideoFormat )
   // Read VM0 register
   digitalWrite(_pinCS, LOW);
   SPI.transfer(VM0_ADDRESS_READ);
-  _regVm0.whole = SPI.transfer(0x00);
+  _regVm0.byte = SPI.transfer(0x00);
   digitalWrite(_pinCS, HIGH);
 
   // Switch OSD video format
@@ -512,7 +538,7 @@ void Max7456::setOutVideoFormat( byte newVideoFormat )
     _regVm0.bits.videoSelect = newVideoFormat & 0x01;
     digitalWrite(_pinCS, LOW);
     SPI.transfer(VM0_ADDRESS_WRITE);
-    SPI.transfer(_regVm0.whole);
+    SPI.transfer(_regVm0.byte);
     digitalWrite(_pinCS, HIGH);
   }
 }
