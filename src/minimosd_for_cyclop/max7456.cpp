@@ -380,7 +380,7 @@ void Max7456::init(byte iPinCS)
 
   // Set video format and vertical write synch
   digitalWrite(_pinCS, LOW);
-  _regVm0.bits.videoSelect = 1;      //1=PAL, 0=NTSC
+  _regVm0.bits.videoSelect = 0;      //1=PAL, 0=NTSC
   _regVm0.bits.verticalSynch = 1;
   SPI.transfer(VM0_ADDRESS_WRITE);
   SPI.transfer(_regVm0.byte);

@@ -1778,9 +1778,10 @@ const char tableOfAllCharacters[13824] PROGMEM = {
    Formal definition for the display protocol: (Token[Command[Param]])*
    Tokens,  commands and params are all bytes.
    All tokens except 0 results in the corresponding character in the Max7456
-   charmap being displayed onscreen  att current position using current paramss.
-   The token 0 signals that the next byte is a command.
+   charmap being displayed onscreen  att current position using current params.
+   The token 255 signals that the next byte is a command.
    Some commands have a single param.
+   Some commands result in a single byte answer.
    Invalid characters are ignored (e.g. unknown commands, params that are out of
    bounds, etc).
  *******************************************************************************
@@ -1802,7 +1803,6 @@ const char tableOfAllCharacters[13824] PROGMEM = {
 #define CMD_NEWLINE         13  /* Moves cursor to start of the next line      */
 #define CMD_SET_X           14  /* Position X cursor (next char is a parameter)*/
 #define CMD_SET_Y           15  /* Position Y cursor (next char is a parameter)*/
-
 /*******************************************************************************
    Hardware Defines
  *******************************************************************************/
@@ -1992,21 +1992,21 @@ void loop()
     else {
       if (activeCommand) {
         switch (inChar) {
-          case CMD_LOAD_CHARS:      loadCharSet(); break;
-          case CMD_CLEAR_SCREEN:    osd.clearScreen(); break;
-          case CMD_ENABLE_OSD:      setOsdState( true ); break;
-          case CMD_DISABLE_OSD:     setOsdState(false); break;
-          case CMD_ENABLE_VIDEO:    setInVideoState( true ); break;
-          case CMD_DISABLE_VIDEO:   setInVideoState( false ); break;
-          case CMD_ENABLE_BLINK:    setBlinkState( true ); break;
-          case CMD_DISABLE_BLINK:   setBlinkState( false ); break;
-          case CMD_ENABLE_INVERSE:  setInverseState( true ); break;
-          case CMD_DISABLE_INVERSE: setInverseState( false ); break;
-          case CMD_ENABLE_FILL:     setFillState( true ); break;
-          case CMD_DISABLE_FILL:    setFillState( false ); break;
-          case CMD_NEWLINE:         newLine(); break;
-          case CMD_SET_X:           waitingForX = true; break;
-          case CMD_SET_Y:           waitingForY = true; break;
+          case CMD_LOAD_CHARS:        loadCharSet(); break;
+          case CMD_CLEAR_SCREEN:      osd.clearScreen(); break;
+          case CMD_ENABLE_OSD:        setOsdState( true ); break;
+          case CMD_DISABLE_OSD:       setOsdState(false); break;
+          case CMD_ENABLE_VIDEO:      setInVideoState( true ); break;
+          case CMD_DISABLE_VIDEO:     setInVideoState( false ); break;
+          case CMD_ENABLE_BLINK:      setBlinkState( true ); break;
+          case CMD_DISABLE_BLINK:     setBlinkState( false ); break;
+          case CMD_ENABLE_INVERSE:    setInverseState( true ); break;
+          case CMD_DISABLE_INVERSE:   setInverseState( false ); break;
+          case CMD_ENABLE_FILL:       setFillState( true ); break;
+          case CMD_DISABLE_FILL:      setFillState( false ); break;
+          case CMD_NEWLINE:           newLine(); break;
+          case CMD_SET_X:             waitingForX = true; break;
+          case CMD_SET_Y:             waitingForY = true; break;
           default: break;           // Unknown command - Just skip it
         }
         activeCommand = false;

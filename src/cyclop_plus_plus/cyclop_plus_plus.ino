@@ -67,8 +67,6 @@
 #define CMD_NEWLINE         13  /* Moves cursor to start of the next line      */
 #define CMD_SET_X           14  /* Position X cursor (next char is a parameter)*/
 #define CMD_SET_Y           15  /* Position Y cursor (next char is a parameter)*/
-#define CMD_SET_VIDEO       16  /* Use INVIDEO format for OSD                  */
-
 //******************************************************************************
 //* Character constants
 
@@ -120,6 +118,7 @@ unsigned char nextChannel( unsigned char channel);
 void          osd( unsigned char command );
 void          osd( unsigned char command, unsigned char param );
 void          osd_char( unsigned char token );
+bool          osd_get(unsigned char *returnChar );
 void          osd_int( unsigned int integer );
 void          osd_string( const char *str );
 unsigned char previousChannel( unsigned char channel);
@@ -354,7 +353,6 @@ void resetOptions(void) {
   options[SHOW_STARTSCREEN_OPTION] = SHOW_STARTSCREEN_DEFAULT;
   options[INFO_LINE_OPTION]        = INFO_LINE_DEFAULT;
   options[INFO_LINE_POS_OPTION]    = INFO_LINE_POS_DEFAULT;
-  options[PAL_VIDEO_OPTION]        = PAL_VIDEO_DEFAULT;
 }
 
 //******************************************************************************
@@ -395,13 +393,6 @@ unsigned char getClickType(unsigned char buttonPin) {
   if (digitalRead(buttonPin) == !BUTTON_PRESSED)
     return ( NO_CLICK );
 
-  // If the screen saver is active the key press is just a wakeup call
-  if (saveScreenActive) {
-    saveScreenActive = 0;
-    while (digitalRead(buttonPin) == BUTTON_PRESSED) ;
-    return ( WAKEUP_CLICK );
-  }
-
   while (digitalRead(buttonPin) == BUTTON_PRESSED) {
     timer++;
     delay(5);
@@ -412,6 +403,13 @@ unsigned char getClickType(unsigned char buttonPin) {
     click_type = LONG_CLICK;
   if (timer >= 300)
     click_type = LONG_LONG_CLICK;
+
+  // If the screen saver is active a short key press is just a wakeup call
+  if (saveScreenActive) {
+    saveScreenActive = 0;
+    if ( click_type == SINGLE_CLICK )
+      return ( WAKEUP_CLICK );
+  }
 
   // Check if there is a second click
   timer = 0;
@@ -953,6 +951,21 @@ void osd_string( const char *str )
 }
 
 //******************************************************************************
+//* function: osd_get
+//*         : reads answers from the serial client.
+//*         : times out after one second of inactivity
+//******************************************************************************
+bool osd_get(unsigned char *returnChar )
+{
+  long timeout = millis() + 1000;
+  while (timeout > millis())
+  {
+    if (Serial.available())
+      returnChar = Serial.read();
+  }
+}
+
+//******************************************************************************
 //* function: drawLogo
 //*         : displays the program Logo
 //******************************************************************************
@@ -992,17 +1005,17 @@ void drawStartScreen( void ) {
   unsigned char i;
 
   // Display Logo
-  drawLogo( 0, 0 );
-
-  // Display version information
-  osd( CMD_SET_X, 9 );
-  osd( CMD_SET_Y, 0 );
-  osd_string(VER_INFO_STRING);
+  drawLogo( 1, 0 );
 
   // Display version date
-  osd( CMD_SET_X, 9 );
-  osd( CMD_SET_Y, 1 );
+  osd( CMD_SET_X, 10 );
+  osd( CMD_SET_Y, 0 );
   osd_string(VER_DATE_STRING);
+
+  // Display version information
+  osd( CMD_SET_X, 10 );
+  osd( CMD_SET_Y, 1 );
+  osd_string(VER_INFO_STRING);
 
   // Display battery status
   batteryMeter( 25, 0 );
@@ -1014,8 +1027,9 @@ void drawStartScreen( void ) {
 //******************************************************************************
 void drawChannelScreen( unsigned char channel) {
   char buffer[22];
+  unsigned char answer;
 
-  drawLogo(0, 0);
+  drawLogo(1, 0);
   batteryMeter(25, 0);
 
   osd( CMD_ENABLE_FILL );
@@ -1056,7 +1070,7 @@ void drawChannelScreen( unsigned char channel) {
 //* function: drawAutoScanScreen
 //******************************************************************************
 void drawAutoScanScreen( void ) {
-  drawLogo(0, 0);
+  drawLogo(1, 0);
   batteryMeter(25, 0);
 }
 
@@ -1165,9 +1179,6 @@ void drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value, bo
 void drawOptionsScreen(unsigned char option ) {
   unsigned char i, j;
 
-  // Video makes it hard to read the options
-  osd( CMD_DISABLE_VIDEO );
-
   drawStartScreen();
   if (option != 0)
     j = option - 1;
@@ -1194,7 +1205,6 @@ void drawOptionsScreen(unsigned char option ) {
       case SHOW_STARTSCREEN_OPTION:  osd_string("show start screen  "); break;
       case INFO_LINE_OPTION:         osd_string("constant info line "); break;
       case INFO_LINE_POS_OPTION:     osd_string("info line position "); break;
-      case PAL_VIDEO_OPTION:         osd_string("video format       "); break;
       case RESET_SETTINGS_COMMAND:   osd_string("reset settings     "); break;
       case TEST_ALARM_COMMAND:       osd_string("test alarm         "); break;
       case EXIT_COMMAND:             osd_string("exit               "); break;
@@ -1206,7 +1216,6 @@ void drawOptionsScreen(unsigned char option ) {
         case SHOW_STARTSCREEN_OPTION: osd_string(options[j] ? "yes    " : "no     "); break;
         case INFO_LINE_OPTION:        osd_string(options[j] ? "yes    " : "no     "); break;
         case INFO_LINE_POS_OPTION:    osd_string(options[j] ? "low    " : "high   "); break;
-        case PAL_VIDEO_OPTION:        osd_string(options[j] ? "pal    " : "ntsc   "); break;
       }
     }
     else
@@ -1214,7 +1223,6 @@ void drawOptionsScreen(unsigned char option ) {
   }
   // Make sure that the inverse is disabled even if option was on last line
   osd( CMD_DISABLE_INVERSE );
-  osd( CMD_ENABLE_VIDEO );
 }
 
 //******************************************************************************

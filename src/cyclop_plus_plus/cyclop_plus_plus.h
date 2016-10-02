@@ -39,25 +39,23 @@
 #define SHOW_STARTSCREEN_OPTION   2
 #define INFO_LINE_OPTION          3
 #define INFO_LINE_POS_OPTION      4
-#define PAL_VIDEO_OPTION          5
 
 #define BATTERY_TYPE_DEFAULT      0  /* 3s */
 #define BATTERY_ALARM_DEFAULT     1  /* On */
 #define SHOW_STARTSCREEN_DEFAULT  1  /* Yes */
 #define INFO_LINE_DEFAULT         1  /* On */
 #define INFO_LINE_POS_DEFAULT     0  /* Top */
-#define PAL_VIDEO_DEFAULT         1  /* PAL */
 
-#define MAX_OPTIONS               6
+#define MAX_OPTIONS               5
 
 // User Configuration Commands
-#define TEST_ALARM_COMMAND        6
-#define RESET_SETTINGS_COMMAND    7
-#define EXIT_COMMAND              8
+#define TEST_ALARM_COMMAND        5
+#define RESET_SETTINGS_COMMAND    6
+#define EXIT_COMMAND              7
 #define MAX_COMMANDS              3
 
 // Number of lines in configuration menu
-#define MAX_OPTION_LINES          9
+#define MAX_OPTION_LINES          (MAX_OPTIONS + MAX_COMMANDS)
 
 // Minimum time info is shown on screen
 #define FORCED_SCREEN_UPDATE_MS   6000
@@ -118,6 +116,6 @@
 
 // Release information
 #define VER_DATE_STRING           "2016-10-13"
-#define VER_INFO_STRING           "v2.0 by DVOGONEN"
+#define VER_INFO_STRING           "v2.0 by Dvogonen"
 
 #endif // cyclop_plus_osd_h
