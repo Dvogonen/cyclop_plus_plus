@@ -8,10 +8,14 @@ But there are several less expensive alternatives.
 I recommend getting a USBASP, which is the cheapest and most widely available alternative. 
 Clones are 2-3$ on eBay.
 Buy more than one USBASP. Frying programmers is not at all uncommon.
-Make sure to buy USBASPs that can be switched between 3.3-volt and 5-volt output.
-The original ones from MSX Electronica are sadly missing this feature, so they are not an option.
-The CYCLOPS controller should be flashed using 3.3 volts while the MinimOSD is a 5 volt board.
-The voltage is selected by moving a jumper often labled JP1. If there is no jumper on the USBASP, you should not buy it.
+
+
+You can either power the processors from the programmer or by attaching the battery during programming.
+You DO NOT want to power the boards from both the programmer and the battery at the same time.
+I have had problems powering the CYCLOPS board via the programming interface, so I recommend programming both boards with the battery attached.
+To be able to do this you must buy a USBASP variant where the power output can be disconnected.
+This is the case with most, but not all USBASPs.
+The voltage selection/disabling is performed by moving a jumper often labled JP1. If there is no jumper on the USBASP, you should not buy it.
 ![USBASP](/images/usbasp_and_adapter.jpg)
 
 #### Connection
@@ -36,7 +40,9 @@ This program is quite nice, so I recommend it instead of the bare bones original
 You find it here: http://blog.zakkemble.co.uk/avrdudess-a-gui-for-avrdude/
 
 ##Programming
-- Select voltage. 3.3 volts for CYCLOPS, 5 volts for MinimOSB.
+Both boards are programmed in the exact same way:
+- Make sure that the programmer does not supply power (Remove Jumper J1).
+- Attach the battery.
 - Connect the programmer to the ISP contact. The battery should not be connected.
 - Start AVRDUDESS.
 - Select your ISP programmer and port in the Programmer box (USBASP and USB)
