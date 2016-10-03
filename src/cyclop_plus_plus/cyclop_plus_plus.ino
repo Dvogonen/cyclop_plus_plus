@@ -106,9 +106,10 @@ unsigned char bestChannelMatch( unsigned int frequency );
 void          drawAutoScanScreen(void);
 void          drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value, bool showNumbers = false );
 void          drawChannelScreen( unsigned char channel);
-void          drawInfoLine( void );
+void          drawLeftInfoLine( void );
 void          drawLogo( unsigned char xPos, unsigned char yPos);
 void          drawOptionsScreen(unsigned char option );
+void          drawRightInfoLine( void );
 void          drawScannerScreen( void );
 void          drawStartScreen(void);
 unsigned char getClickType(unsigned char buttonPin);
@@ -118,7 +119,6 @@ unsigned char nextChannel( unsigned char channel);
 void          osd( unsigned char command );
 void          osd( unsigned char command, unsigned char param );
 void          osd_char( unsigned char token );
-bool          osd_get(unsigned char *returnChar );
 void          osd_int( unsigned int integer );
 void          osd_string( const char *str );
 unsigned char previousChannel( unsigned char channel);
@@ -287,7 +287,6 @@ void loop()
   if  (lastClick != NO_CLICK )
     forceDisplayTimer = millis() + FORCED_SCREEN_UPDATE_MS;
 
-  //
   if (screenCleaning)
   {
     screenCleaning = 0;
@@ -300,7 +299,10 @@ void loop()
     displayUpdateTimer = millis() + 1000;
     if ( options[INFO_LINE_OPTION] || (forceDisplayTimer > millis()))
     {
-      drawInfoLine();
+      if (options[INFO_LINE_POS_OPTION])
+        drawLeftInfoLine();
+      else
+        drawRightInfoLine();
     }
     else
     {
@@ -322,7 +324,6 @@ void loop()
     ledState = !ledState;
     pulseTimer = millis() + 500;
   }
-
   digitalWrite(LED_PIN, ledState);
 
   // Toggle alarm on or off
@@ -951,21 +952,6 @@ void osd_string( const char *str )
 }
 
 //******************************************************************************
-//* function: osd_get
-//*         : reads answers from the serial client.
-//*         : times out after one second of inactivity
-//******************************************************************************
-bool osd_get(unsigned char *returnChar )
-{
-  long timeout = millis() + 1000;
-  while (timeout > millis())
-  {
-    if (Serial.available())
-      returnChar = Serial.read();
-  }
-}
-
-//******************************************************************************
 //* function: drawLogo
 //*         : displays the program Logo
 //******************************************************************************
@@ -999,7 +985,7 @@ void drawLogo( unsigned char xPos, unsigned char yPos) {
 
 //******************************************************************************
 //* function: drawStartScreen
-//*         : displays a boot image for a short time
+//*         : displays the boot screen
 //******************************************************************************
 void drawStartScreen( void ) {
   unsigned char i;
@@ -1215,7 +1201,7 @@ void drawOptionsScreen(unsigned char option ) {
         case BATTERY_ALARM_OPTION:    osd_string(options[j] ? "yes    " : "no     "); break;
         case SHOW_STARTSCREEN_OPTION: osd_string(options[j] ? "yes    " : "no     "); break;
         case INFO_LINE_OPTION:        osd_string(options[j] ? "yes    " : "no     "); break;
-        case INFO_LINE_POS_OPTION:    osd_string(options[j] ? "low    " : "high   "); break;
+        case INFO_LINE_POS_OPTION:    osd_string(options[j] ? "left   " : "right  "); break;
       }
     }
     else
@@ -1226,14 +1212,14 @@ void drawOptionsScreen(unsigned char option ) {
 }
 
 //******************************************************************************
-//* function: drawInfoLine
+//* function: drawLeftInfoLine
 //******************************************************************************
-void drawInfoLine( void )
+void drawLeftInfoLine( void )
 {
   char buffer[3];
-
-  osd( CMD_SET_X, 12 );
-  osd( CMD_SET_Y, options[INFO_LINE_POS_OPTION] ? 12 : 0);
+  batteryMeter(1, 0);
+  osd( CMD_SET_X, 3 );
+  osd( CMD_SET_Y, 0);
   osd_string(shortNameOfChannel(currentChannel, buffer));
   osd_char(OSD_SPACE);
   osd_char(OSD_MHZ);
@@ -1241,5 +1227,23 @@ void drawInfoLine( void )
   osd_char(OSD_SPACE);
   osd_char(OSD_ANTENNA);
   osd_int(averageAnalogRead(RSSI_PIN));
-  batteryMeter(25, options[INFO_LINE_POS_OPTION] ? 12 : 0);
+}
+
+//******************************************************************************
+//* function: drawRightInfoLine
+//******************************************************************************
+void drawRightInfoLine( void )
+{
+  char buffer[3];
+
+  osd( CMD_SET_X, 12 );
+  osd( CMD_SET_Y, 0);
+  osd_string(shortNameOfChannel(currentChannel, buffer));
+  osd_char(OSD_SPACE);
+  osd_char(OSD_MHZ);
+  osd_int(getFrequency(currentChannel));
+  osd_char(OSD_SPACE);
+  osd_char(OSD_ANTENNA);
+  osd_int(averageAnalogRead(RSSI_PIN));
+  batteryMeter(25, 0);
 }
