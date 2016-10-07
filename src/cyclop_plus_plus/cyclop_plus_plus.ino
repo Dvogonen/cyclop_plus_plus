@@ -766,11 +766,11 @@ void spiEnableHigh()
 //* function: batteryMeter
 //*         : Measured voltage values
 //*         : 3s LiPo
-//*         : max = 4.2v * 3 = 12.6v = 643
-//*         : min = 3.6v * 3 = 10.8v = 551
+//*         : max = 4.2v * 3 = 12.6v = 639
+//*         : min = 3.6v * 3 = 10.8v = 546
 //*         : 2s LiPo
-//*         : max = 4.2v * 2 = 8.4v = 429
-//*         : min = 3.6v * 2 = 7.2v = 367
+//*         : max = 4.2v * 2 = 8.4v = 411
+//*         : min = 3.6v * 2 = 7.2v = 359
 //******************************************************************************
 void batteryMeter( unsigned char x, unsigned char y, bool showNumbers )
 {
@@ -780,12 +780,12 @@ void batteryMeter( unsigned char x, unsigned char y, bool showNumbers )
   unsigned int maxV;
 
   if (options[BATTERY_TYPE_OPTION]) { /* == 2s */
-    minV = 367;
-    maxV = 429;
+    minV = 359;
+    maxV = 411;
   }
   else {                            /* 3s */
-    minV = 551;
-    maxV = 643;
+    minV = 546;
+    maxV = 639;
   }
 
   voltage = averageAnalogRead(VOLTAGE_METER_PIN);
@@ -1148,7 +1148,7 @@ void drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value, bo
   else if (value > 37)
     osd_char(OSD_BATTERY_50);
   else if (value > 12)
-    osd(OSD_BATTERY_25);
+    osd_char(OSD_BATTERY_25);
   else
     osd_char(OSD_BATTERY_0);
 
