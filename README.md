@@ -1,4 +1,4 @@
-#CYCLOP++ - Beta Released
+#CYCLOP++ - v2.1
 The Quanum Cyclops googles are limited to only the most basic functionality.
 The limitation is however not dependent on the electronic hardware, which is quite powerful.
 By replacing the firmware of the receiver board and adding an inexpensive MinimOSD module, the googles become fully featured. 
@@ -10,18 +10,19 @@ By replacing the firmware of the receiver board and adding an inexpensive MinimO
 * Channel Frequency, Channel Name, Signal Strength and Battery level are displayed on the googles video screen.
 * A low battery warning buzzer warns before the battery power cuts off.
 
-This project was forked from v1.4 of the CYCLOP+ project. The original project uses an extra OLED screen to display information instead of the google screen.
-
-##MinimOSD PCB
+##Prepare the MinimOSD PCB
 The screen information is added by installing a MinimOSD (aka Mavlink OSD).
 These modules are commonly used in RC FPV aircraft to add visual information to the FPV video signal.
 They are available from multiple sources and are inexpensive.
-Avoid buing the Mikro variants. These are very small, which is convenient, but do not have a power regulator.
-You might e.g. use the v1.1 version of the PCB, which looks like this:
+You might e.g. use the v1.1 version of the MinimOSD PCB, which looks like this:
 ![minimOSD](/images/minimOSD1.1.jpg)
 The minimOSD board version used in the build steps below is a bit bigger since it has the so called KV-mod. 
 Either version will work just fine.
 
+Avoid buing the Mikro MinimOSD variants. These are very small, which is convenient.
+What is less convenient is that they do not have a power regulator.
+Neither do they have soldering pads for an ISP interface.
+It is technically possible to overcome these limitations, but how to do that is not described here.
 
 ####Mount the Programming Pins
 Solder a 2x3 block of pin headers into the holes for the ISP port.
@@ -31,7 +32,7 @@ The bottom right pin is VCC. That is the one below the hole with the square pad.
 
 #### Program the Processor
 The firmware on the MinimOSD must be replaced to make it able to talk to the CYCLOPS board.
-The firmware file is called minimosd_for_cyclop.hex and can be downloaded via this link: https://raw.githubusercontent.com/Dvogonen/cyclop_plus_plus/master/minimosd_for_cyclop_beta.hex (right-click and download).
+The firmware file is called [minimosd_for_cyclop_v0201.hex](https://raw.githubusercontent.com/Dvogonen/cyclop_plus_plus/master/minimosd_for_cyclop_v0201.hex) (right-click and download).
 Check the format of the downloaded file. Each line must start with a colon character and only contain letters and numbers and look something like this:
 :100000000C941F030C9447030C9447030C94470370
 
@@ -39,7 +40,7 @@ If you do not know how to program Atmel controllers there is a guide [here](PROG
 
 If you want to build the firmware yourself, you can do so. Here is a link to the [description](BUILDING.md)
 
-##CYCLOPS Receiver PCB
+##Prepare the CYCLOPS Receiver PCB
 ####Mount the Programming Pins
 Solder a 2x3 block of pin headers into the holes for the ISP port.
 The holes for the ISP connector is found just to the right of the button switch. In the image they are marked as (1).
@@ -53,8 +54,20 @@ The trace leading between (2) and (3) carries the video signal. It must be cut s
 Use a sharp knife and cut across the trace. 
 Use a multimeter to check that there is no longer any connection between (2) and (3).
 
+####Add the Alarm Buzzer
+A 5 volt miniature piezzo buzzer is used as a low battery alarm.
+Both active buzzers, and passive piezzo speakers can be used.
+The later kind is often refered to as "PC Motherboard Speakers".
+An example of a piezo buzzer is this:
+
+![Buzzer Example](/images/buzzer.jpg)
+
+- Solder the leg marked by a + or attached to a red wire to the solder point marked D6.
+- Solder the other (black) leg to a ground point. The legs of the antenna contact as well as the square through hole solder island in the middle of the PCB are ground points.
+![Alarm Speaker Connection](/images/pcb_buzzer.jpg)
+
 #### Program the Processor
-The firmware file is called cyclop_plus_plus.hex and can be downloaded via this link: https://raw.githubusercontent.com/Dvogonen/cyclop_plus_osd/master/cyclop_plus_plus_beta.hex (right-click and download).
+The firmware file is called [cyclop_plus_plus_v0201.hex](https://raw.githubusercontent.com/Dvogonen/cyclop_plus_osd/master/cyclop_plus_plus_v0201.hex) (right-click and download).
 Check the format of the downloaded file. Each line must start with a colon character and only contain letters and numbers and look something like this:
 :100000000C941F030C9447030C9447030C94470370
 
@@ -62,7 +75,7 @@ If you do not know how to program Atmel controllers there is a guide [here](PROG
 
 If you want to build the firmware yourself, you can do so. Here is a link to the [description](BUILDING.md)
 
-##Board Connection
+##Connect the two boards
 Keep the wires as short as possible to avoid interference on the video and serial lines.
 * VIN to 2
 * VOUT to 3
@@ -71,17 +84,6 @@ Keep the wires as short as possible to avoid interference on the video and seria
 * TX to 5
 * VCC to 7
 
-##Alarm Buzzer
-A 5 volt miniature piezzo buzzer is used as a low battery alarm.
-Both active buzzers, and passive piezzo speakers can be used.
-The later kind is often refered to as "PC Motherboard Speakers".
-An example of a piezo buzzer is this:
-
-![Buzzer Example](/images/buzzer.jpg)
-####Installation
-- Solder the leg marked by a + or attached to a red wire to the solder point marked D6.
-- Solder the other (black) leg to a ground point. The legs of the antenna contact as well as the square through hole solder island in the middle of the PCB are ground points.
-![Alarm Speaker Connection](/images/pcb_buzzer.jpg)
 
 ##End Result
 I recommend mounting the minimOSD with double sided mounting tape on top of the radio shielding can. If you do, this how your finished double PCB will look like:
@@ -110,14 +112,17 @@ It is possible to "Brick" the processors by tampering with the so called process
 There is no need to change any fuses from their original values (0xE2 0xD9 0x07 for the receiver board). Leave them alone.
 
 ##Version History
-* 1.0 Initial dev version, not released
-* 1.1 Functionly complete dev version, not released
-* 1.2 Timing optimizations. First released version. 2016-06-20
-* 1.3 Configration options added. Screensaver mode added. Battery meter added. 2016-07-15
-* 1.4 SH1106 OLED support added. Button timing improved. Low battery alarm added. 2016-08-20
+* 1.0 (CYCLOP+)Initial dev version, not released
+* 1.1 (CYCLOP+)Functionly complete dev version, not released
+* 1.2 (CYCLOP+)Timing optimizations. First released version. 2016-06-20
+* 1.3 (CYCLOP+)Configration options added. Screensaver mode added. Battery meter added. 2016-07-15
+* 1.4 (CYCLOP+)SH1106 OLED support added. Button timing improved. Low battery alarm added. 2016-08-20
 * 2.0 OLED code removed, MinimOSD code added. Beta1 2016-10-03
+* 2.1 Battery voltage bug solved. First CYCLOP++ stable release. 2016-10-13 
 
 ##License
+This project was forked from v1.4 of the CYCLOP+ project. The original project uses an extra OLED screen to display information instead of the google screen.
+
 The MIT License (MIT)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal
