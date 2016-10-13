@@ -40,11 +40,11 @@
 #define INFO_LINE_OPTION          3
 #define INFO_LINE_POS_OPTION      4
 
-#define BATTERY_TYPE_DEFAULT      0  /* 3s */
-#define BATTERY_ALARM_DEFAULT     1  /* On */
-#define SHOW_STARTSCREEN_DEFAULT  1  /* Yes */
-#define INFO_LINE_DEFAULT         1  /* On */
-#define INFO_LINE_POS_DEFAULT     0  /* Top */
+#define BATTERY_TYPE_DEFAULT      0  /* 3s    */
+#define BATTERY_ALARM_DEFAULT     1  /* On    */
+#define SHOW_STARTSCREEN_DEFAULT  1  /* Yes   */
+#define INFO_LINE_DEFAULT         1  /* On    */
+#define INFO_LINE_POS_DEFAULT     0  /* Right */
 
 #define MAX_OPTIONS               5
 
@@ -115,7 +115,7 @@
 #define LED_ON                    HIGH
 
 // Release information
-#define VER_DATE_STRING           "2016-10-03"
-#define VER_INFO_STRING           "Beta by Dvogonen"
+#define VER_DATE_STRING           "2016-10-13"
+#define VER_INFO_STRING           "v2.1 by Dvogonen"
 
 #endif // cyclop_plus_osd_h
