@@ -331,7 +331,7 @@ void loop()
     if (millis() > alarmTimer) {
       alarmSoundOn = !alarmSoundOn;
       if (alarmSoundOn) {
-        analogWrite( ALARM_PIN, 32 );
+        analogWrite( ALARM_PIN, options[ALARM_LEVEL_OPTION] );
         alarmTimer = millis() + alarmOnPeriod;
       }
       else {
@@ -829,6 +829,7 @@ void setOptions()
   unsigned char exitNow = false;
   unsigned char menuSelection = 0;
   unsigned char click = NO_CLICK;
+  unsigned char in_edit_state = 0;
   long redrawTimer = 0;
 
   // Display option screen
@@ -840,38 +841,63 @@ void setOptions()
   while ( !exitNow )
   {
     click = getClickType( BUTTON_PIN );
-    switch ( click )
-    {
-      case NO_CLICK:        // do nothing
-        break;
 
-      case SINGLE_CLICK:    // Move to next option
-        menuSelection++;
-        if (menuSelection >= MAX_OPTIONS + MAX_COMMANDS)
-          menuSelection = 0;
-        break;
+    if (in_edit_state)
+      switch ( click )
+      {
+        case NO_CLICK:        // do nothing
+          break;
 
-      case DOUBLE_CLICK:    // Move to previous option
-        if (menuSelection == 0)
-          menuSelection = MAX_OPTIONS + MAX_COMMANDS - 1;
-        else
-          menuSelection--;
-        break;
+        case SINGLE_CLICK:    // increase option
+          if (menuSelection == ALARM_LEVEL_OPTION)
+            options[ALARM_LEVEL_OPTION]++;
+          else
+            options[menuSelection] = !options[menuSelection];
+          break;
 
-      case LONG_CLICK:     // Execute command or toggle option
-      case LONG_LONG_CLICK:
-        if (menuSelection == EXIT_COMMAND)
-          exitNow = true;
-        else if (menuSelection == RESET_SETTINGS_COMMAND)
-          resetOptions();
+        case DOUBLE_CLICK:    // decrease option
+          if (menuSelection == ALARM_LEVEL_OPTION)
+            options[ALARM_LEVEL_OPTION]--;
+          else
+            options[menuSelection] = !options[menuSelection];
+          break;
 
-        else if (menuSelection == TEST_ALARM_COMMAND) {
-          testAlarm();
-        }
-        else
-          options[menuSelection] = !options[menuSelection];
-        break;
-    }
+        case LONG_CLICK:     // stop editing
+        case LONG_LONG_CLICK:
+          in_edit_state = 0;
+      }
+    else
+      switch ( click )
+      {
+        case NO_CLICK:        // do nothing
+          break;
+
+        case SINGLE_CLICK:    // Move to next option
+          menuSelection++;
+          if (menuSelection >= MAX_OPTIONS + MAX_COMMANDS)
+            menuSelection = 0;
+          break;
+
+        case DOUBLE_CLICK:    // Move to previous option
+          if (menuSelection == 0)
+            menuSelection = MAX_OPTIONS + MAX_COMMANDS - 1;
+          else
+            menuSelection--;
+          break;
+
+        case LONG_CLICK:     // Execute command or toggle option
+        case LONG_LONG_CLICK:
+          if (menuSelection == EXIT_COMMAND)
+            exitNow = true;
+          else if (menuSelection == RESET_SETTINGS_COMMAND)
+            resetOptions();
+          else if (menuSelection == TEST_ALARM_COMMAND) {
+            testAlarm();
+          }
+          else
+            in_edit_state = 1;
+          break;
+      }
     if (( click != NO_CLICK ) || ( millis() > redrawTimer )) {
       redrawTimer = millis() + 1000;
       drawOptionsScreen( menuSelection );
@@ -1187,10 +1213,11 @@ void drawOptionsScreen(unsigned char option ) {
     }
     switch (j) {
       case BATTERY_TYPE_OPTION:      osd_string("battery type       "); break;
-      case BATTERY_ALARM_OPTION:     osd_string("battery alarm      "); break;
       case SHOW_STARTSCREEN_OPTION:  osd_string("show start screen  "); break;
       case INFO_LINE_OPTION:         osd_string("constant info line "); break;
       case INFO_LINE_POS_OPTION:     osd_string("info line position "); break;
+      case BATTERY_ALARM_OPTION:     osd_string("battery alarm      "); break;
+      case ALARM_LEVEL_OPTION:       osd_string("alarm level        "); break;
       case RESET_SETTINGS_COMMAND:   osd_string("reset settings     "); break;
       case TEST_ALARM_COMMAND:       osd_string("test alarm         "); break;
       case EXIT_COMMAND:             osd_string("exit               "); break;
@@ -1198,10 +1225,11 @@ void drawOptionsScreen(unsigned char option ) {
     if (j < MAX_OPTIONS) {
       switch (j) {
         case BATTERY_TYPE_OPTION:     osd_string(options[j] ? "2s lipo" : "3s lipo"); break;
-        case BATTERY_ALARM_OPTION:    osd_string(options[j] ? "yes    " : "no     "); break;
         case SHOW_STARTSCREEN_OPTION: osd_string(options[j] ? "yes    " : "no     "); break;
         case INFO_LINE_OPTION:        osd_string(options[j] ? "yes    " : "no     "); break;
         case INFO_LINE_POS_OPTION:    osd_string(options[j] ? "left   " : "right  "); break;
+        case BATTERY_ALARM_OPTION:    osd_string(options[j] ? "yes    " : "no     "); break;
+        case ALARM_LEVEL_OPTION:      osd_int(options[j]); osd_string("  "); break;
       }
     }
     else

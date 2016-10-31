@@ -1,4 +1,4 @@
-#CYCLOP++ - v2.1
+#CYCLOP++ - v2.2
 The Quanum Cyclops googles are limited to only the most basic functionality.
 The limitation is however not dependent on the electronic hardware, which is quite powerful.
 By replacing the firmware of the receiver board and adding an inexpensive MinimOSD module, the googles become fully featured. 
@@ -32,7 +32,7 @@ The bottom right pin is VCC. That is the one below the hole with the square pad.
 
 #### Program the Processor
 The firmware on the MinimOSD must be replaced to make it able to talk to the CYCLOPS board.
-The firmware file is called [minimosd_for_cyclop_v0201.hex](https://raw.githubusercontent.com/Dvogonen/cyclop_plus_plus/master/minimosd_for_cyclop_v0201.hex) (right-click and download).
+The firmware file is called [minimosd_for_cyclop_v0202.hex](https://raw.githubusercontent.com/Dvogonen/cyclop_plus_plus/master/minimosd_for_cyclop_v0202.hex) (right-click and download).
 Check the format of the downloaded file. Each line must start with a colon character and only contain letters and numbers and look something like this:
 :100000000C941F030C9447030C9447030C94470370
 
@@ -67,7 +67,7 @@ An example of a piezo buzzer is this:
 ![Alarm Speaker Connection](/images/pcb_buzzer.jpg)
 
 #### Program the Processor
-The firmware file is called [cyclop_plus_plus_v0201.hex](https://raw.githubusercontent.com/Dvogonen/cyclop_plus_osd/master/cyclop_plus_plus_v0201.hex) (right-click and download).
+The firmware file is called [cyclop_plus_plus_v0202.hex](https://raw.githubusercontent.com/Dvogonen/cyclop_plus_osd/master/cyclop_plus_plus_v0202.hex) (right-click and download).
 Check the format of the downloaded file. Each line must start with a colon character and only contain letters and numbers and look something like this:
 :100000000C941F030C9447030C9447030C94470370
 
@@ -118,7 +118,8 @@ There is no need to change any fuses from their original values (0xE2 0xD9 0x07 
 * 1.3 (CYCLOP+)Configration options added. Screensaver mode added. Battery meter added. 2016-07-15
 * 1.4 (CYCLOP+)SH1106 OLED support added. Button timing improved. Low battery alarm added. 2016-08-20
 * 2.0 OLED code removed, MinimOSD code added. Beta1 2016-10-03
-* 2.1 Battery voltage bug solved. First CYCLOP++ stable release. 2016-10-13 
+* 2.1 Battery voltage bug solved. First CYCLOP++ stable release. 2016-10-13
+* 2.2 Alarm level configuration. Not-Yet-Released
 
 ##License
 This project was forked from v1.4 of the CYCLOP+ project. The original project uses an extra OLED screen to display information instead of the google screen.
