@@ -90,10 +90,10 @@
 
 // Channels in use 
 #define CHANNEL_MIN               0
-#define CHANNEL_MAX               39
+#define CHANNEL_MAX               47
 
 // Max and Min frequencies
-#define FREQUENCY_MIN             5645
+#define FREQUENCY_MIN             5345
 #define FREQUENCY_MAX             5945
 
 //EEPROM addresses
@@ -117,7 +117,7 @@
 #define LED_ON                    HIGH
 
 // Release information
-#define VER_DATE_STRING           "2016-11-04"
+#define VER_DATE_STRING           "2017-03-10"
 #define VER_INFO_STRING           "v2.2 by Dvogonen"
 
 #endif // cyclop_plus_osd_h

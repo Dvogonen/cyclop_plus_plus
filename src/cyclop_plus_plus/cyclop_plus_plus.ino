@@ -132,13 +132,14 @@ void          updateScannerScreen(unsigned char position, unsigned char value );
 void          writeEeprom(void);
 
 //******************************************************************************
-//* Positions in the frequency table for the 40 channels
+//* Positions in the frequency table for the 48 channels
 //* Direct access via array operations does not work since data is stored in
 //* flash, not in RAM. Use getPosition to retrieve data
 
 const unsigned char positions[] PROGMEM = {
-  19, 18, 32, 17, 33, 16,  7, 34,  8, 24,  6,  9, 25,  5, 35, 10, 26,  4, 11, 27,
-  3, 36, 12, 28,  2, 13, 29, 37,  1, 14, 30,  0, 15, 31, 38, 20, 21, 39, 22, 23
+  40, 41, 42, 43, 44, 45, 46, 47, 19, 32, 18, 17, 33, 16,  7, 34,
+   8, 24,  6,  9, 25,  5, 35, 10, 26,  4, 11, 27,  3, 36, 12, 28,
+   2, 13, 29, 37,  1, 14, 30,  0, 15, 31, 38, 20, 21, 39, 22, 23
 };
 
 unsigned int getPosition( unsigned char channel ) {
@@ -146,7 +147,7 @@ unsigned int getPosition( unsigned char channel ) {
 }
 
 //******************************************************************************
-//* Frequencies for the 40 channels
+//* Frequencies for the 48 channels
 //* Direct access via array operations does not work since data is stored in
 //* flash, not in RAM. Use getFrequency to retrieve data
 
@@ -155,7 +156,9 @@ const unsigned int channelFrequencies[] PROGMEM = {
   5733, 5752, 5771, 5790, 5809, 5828, 5847, 5866, // Band B - Boscam B
   5705, 5685, 5665, 5645, 5885, 5905, 5925, 5945, // Band E - DJI
   5740, 5760, 5780, 5800, 5820, 5840, 5860, 5880, // Band F - FatShark \ Immersion
-  5658, 5695, 5732, 5769, 5806, 5843, 5880, 5917  // Band C - Raceband
+  5658, 5695, 5732, 5769, 5806, 5843, 5880, 5917, // Band C - Raceband
+  5362, 5399, 5436, 5473, 5510, 5547, 5584, 5621  // Band L - Lowband
+ 
 };
 
 unsigned int getFrequency( unsigned char channel ) {
@@ -493,10 +496,10 @@ unsigned int graphicScanner( unsigned int frequency ) {
   // Disable video
   osd(CMD_DISABLE_VIDEO);
 
-  // Cycle through the band in 5MHz steps
+  // Cycle through the band in 10MHz steps
   while ((clickType = getClickType(BUTTON_PIN)) == NO_CLICK) {
     for (i = 0; i < 2; i++) {
-      scanFrequency += 5;
+      scanFrequency += 10;
       if (scanFrequency > FREQUENCY_MAX)
         scanFrequency = FREQUENCY_MIN;
       setRTC6715Frequency(scanFrequency);
@@ -549,8 +552,8 @@ unsigned int autoScan( unsigned int frequency ) {
   // Coarse tuning
   bestFrequency = scanFrequency;
   for (i = 0; i < 60 && (scanRssi < RSSI_TRESHOLD); i++) {
-    if ( scanFrequency <= (FREQUENCY_MAX - 5))
-      scanFrequency += 5;
+    if ( scanFrequency <= (FREQUENCY_MAX - 10))
+      scanFrequency += 10;
     else
       scanFrequency = FREQUENCY_MIN;
     setRTC6715Frequency(scanFrequency);
@@ -610,8 +613,10 @@ char *shortNameOfChannel(unsigned char channel, char *name)
     name[0] = 'e';
   else if (channelIndex < 32)
     name[0] = 'f';
-  else
+  else if (channelIndex < 40)
     name[0] = 'r';
+  else
+    name[0] = 'l';
   name[1] = (channelIndex % 8) + '0' + 1;
   name[2] = 0;
   return name;
@@ -632,8 +637,10 @@ char *longNameOfChannel(unsigned char channel, char *name)
     strcpy(name, "Foxtech/DJI ");
   else if (channelIndex < 32)
     strcpy(name, "FatShark ");
+  else if (channelIndex < 40)
+    strcpy(name, "RaceBand ");
   else
-    strcpy(name, "Raceband ");
+    strcpy(name, "LowBand  ");
   len = strlen( name );
   name[len] = (channelIndex % 8) + '0' + 1;
   name[len + 1] = 0;
@@ -1097,7 +1104,7 @@ void drawScannerScreen( void ) {
   }
   osd(CMD_SET_X, 0);
   osd(CMD_SET_Y, 12);
-  osd_string("  5.65       5.80       5.95");
+  osd_string("  5.35       5.60       5.95");
 }
 
 //******************************************************************************
