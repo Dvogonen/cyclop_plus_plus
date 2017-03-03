@@ -96,6 +96,7 @@
 #define OSD_BAR_EMPTY       0x18
 #define OSD_SPACE           0x20
 #define OSD_LOGO            0x80
+
 //******************************************************************************
 //* File scope function declarations
 
@@ -353,10 +354,12 @@ void loop()
 //******************************************************************************
 void resetOptions(void) {
   options[BATTERY_TYPE_OPTION]     = BATTERY_TYPE_DEFAULT;
-  options[BATTERY_ALARM_OPTION]    = BATTERY_ALARM_DEFAULT;
   options[SHOW_STARTSCREEN_OPTION] = SHOW_STARTSCREEN_DEFAULT;
   options[INFO_LINE_OPTION]        = INFO_LINE_DEFAULT;
   options[INFO_LINE_POS_OPTION]    = INFO_LINE_POS_DEFAULT;
+  options[BATTERY_ALARM_OPTION]    = BATTERY_ALARM_DEFAULT;
+  options[ALARM_LEVEL_DEFAULT]     = ALARM_LEVEL_DEFAULT;
+  options[LOW_BAND_OPTION]         = LOW_BAND_DEFAULT;
 }
 
 //******************************************************************************
@@ -446,10 +449,13 @@ unsigned char nextChannel(unsigned char channel)
 //******************************************************************************
 unsigned char previousChannel(unsigned char channel)
 {
-  if ((channel > CHANNEL_MAX) || (channel == CHANNEL_MIN))
+  if (channel > CHANNEL_MAX)
     return CHANNEL_MAX;
-  else
-    return channel - 1;
+    
+  if ( channel == CHANNEL_MIN )
+    return CHANNEL_MAX;
+    
+  return channel - 1;
 }
 
 //******************************************************************************
@@ -499,7 +505,7 @@ unsigned int graphicScanner( unsigned int frequency ) {
   // Cycle through the band in 10MHz steps
   while ((clickType = getClickType(BUTTON_PIN)) == NO_CLICK) {
     for (i = 0; i < 2; i++) {
-      scanFrequency += 10;
+      scanFrequency += SCANNING_STEP;
       if (scanFrequency > FREQUENCY_MAX)
         scanFrequency = FREQUENCY_MIN;
       setRTC6715Frequency(scanFrequency);
@@ -510,7 +516,7 @@ unsigned int graphicScanner( unsigned int frequency ) {
       else
         rssiDisplayValue2 = (scanRssi - 140) / 20;    // Roughly 1 - 23
     }
-    updateScannerScreen(29 - ((FREQUENCY_MAX - scanFrequency) / 10), rssiDisplayValue1, rssiDisplayValue2 );
+    updateScannerScreen(29 - ((FREQUENCY_MAX - scanFrequency) / FREQUENCY_DIVIDER), rssiDisplayValue1, rssiDisplayValue2 );
   }
   // Fine tuning
   scanFrequency = scanFrequency - 20;
@@ -545,7 +551,7 @@ unsigned int autoScan( unsigned int frequency ) {
   osd(CMD_DISABLE_VIDEO);
 
   // Skip 10 MHz forward to avoid detecting the current channel
-  scanFrequency = frequency + 10;
+  scanFrequency = frequency + SCANNING_STEP;
   if (!(scanFrequency % 2))
     scanFrequency++;        // RTC6715 can only generate odd frequencies
 
@@ -1104,7 +1110,10 @@ void drawScannerScreen( void ) {
   }
   osd(CMD_SET_X, 0);
   osd(CMD_SET_Y, 12);
-  osd_string("  5.35       5.60       5.95");
+  if ( options[LOW_BAND_OPTION] )
+    osd_string("  5.35       5.60       5.95");
+  else
+    osd_string("  5.65       5.80       5.95");
 }
 
 //******************************************************************************
@@ -1225,6 +1234,7 @@ void drawOptionsScreen(unsigned char option ) {
       case INFO_LINE_POS_OPTION:     osd_string("info line position "); break;
       case BATTERY_ALARM_OPTION:     osd_string("battery alarm      "); break;
       case ALARM_LEVEL_OPTION:       osd_string("alarm level        "); break;
+      case LOW_BAND_OPTION:          osd_string("display low band   "); break;
       case RESET_SETTINGS_COMMAND:   osd_string("reset settings     "); break;
       case TEST_ALARM_COMMAND:       osd_string("test alarm         "); break;
       case EXIT_COMMAND:             osd_string("exit               "); break;
@@ -1237,6 +1247,7 @@ void drawOptionsScreen(unsigned char option ) {
         case INFO_LINE_POS_OPTION:    osd_string(options[j] ? "left   " : "right  "); break;
         case BATTERY_ALARM_OPTION:    osd_string(options[j] ? "yes    " : "no     "); break;
         case ALARM_LEVEL_OPTION:      osd_int(options[j]); osd_string("  "); break;
+        case LOW_BAND_OPTION:         osd_string(options[j] ? "yes    " : "no     "); break;
       }
     }
     else

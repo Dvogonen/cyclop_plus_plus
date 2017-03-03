@@ -40,6 +40,7 @@
 #define INFO_LINE_POS_OPTION      3
 #define BATTERY_ALARM_OPTION      4
 #define ALARM_LEVEL_OPTION        5
+#define LOW_BAND_OPTION           6
 
 #define BATTERY_TYPE_DEFAULT      0  /* 3s    */
 #define SHOW_STARTSCREEN_DEFAULT  1  /* Yes   */
@@ -47,13 +48,14 @@
 #define INFO_LINE_POS_DEFAULT     0  /* Right */
 #define BATTERY_ALARM_DEFAULT     1  /* On    */
 #define ALARM_LEVEL_DEFAULT       32 /* value 0-255   */
+#define LOW_BAND_DEFAULT          1  /* Yes */
 
-#define MAX_OPTIONS               6
+#define MAX_OPTIONS               7
 
 // User Configuration Commands
-#define TEST_ALARM_COMMAND        6
-#define RESET_SETTINGS_COMMAND    7
-#define EXIT_COMMAND              8
+#define TEST_ALARM_COMMAND        7
+#define RESET_SETTINGS_COMMAND    8
+#define EXIT_COMMAND              9
 #define MAX_COMMANDS              3
 
 // Number of lines in configuration menu
@@ -89,17 +91,22 @@
 #define RSSI_TRESHOLD             250
 
 // Channels in use 
-#define CHANNEL_MIN               0
+#define CHANNEL_MIN               (options[LOW_BAND_OPTION] ? 0 : 8)
 #define CHANNEL_MAX               47
 
 // Max and Min frequencies
-#define FREQUENCY_MIN             5345
+#define FREQUENCY_MIN             (options[LOW_BAND_OPTION] ? 5345 : 5645)
 #define FREQUENCY_MAX             5945
+
+//******************************************************************************
+//* Frequency resolutions
+#define SCANNING_STEP             (options[LOW_BAND_OPTION] ? 10 : 5)
+#define FREQUENCY_DIVIDER         (options[LOW_BAND_OPTION] ? 20 : 10)
 
 //EEPROM addresses
 #define EEPROM_CHANNEL            0
 #define EEPROM_OPTIONS            1
-#define EEPROM_CHECK      (EEPROM_OPTIONS + MAX_OPTIONS)
+#define EEPROM_CHECK              (EEPROM_OPTIONS + MAX_OPTIONS)
 
 // click types
 #define NO_CLICK                  0
