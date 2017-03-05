@@ -5,7 +5,8 @@ By replacing the firmware of the receiver board and adding an inexpensive MinimO
 
 ####Added Functions
 * FPV channels can be manually selected.
-* The complete 5.8 GHz band can be scanned for signal strength in order to find unused channels.
+* There is full 48 channel support. Both for the complete race band and the new low band.
+* The complete frequency range can be scanned for signal strength in order to find unused channels.
 * The googles can automatically scan through all channels and let you pick which one to view.
 * Channel Frequency, Channel Name, Signal Strength and Battery level are displayed on the googles video screen.
 * A low battery warning buzzer warns before the battery power cuts off.
@@ -84,7 +85,6 @@ Keep the wires as short as possible to avoid interference on the video and seria
 * TX to 5
 * VCC to 7
 
-
 ##End Result
 I recommend mounting the minimOSD with double sided mounting tape on top of the radio shielding can. If you do, this how your finished double PCB will look like:
 ![Finished PCBs](/images/pcb_finished.jpg)
@@ -119,7 +119,7 @@ There is no need to change any fuses from their original values (0xE2 0xD9 0x07 
 * 1.4 (CYCLOP+)SH1106 OLED support added. Button timing improved. Low battery alarm added. 2016-08-20
 * 2.0 OLED code removed, MinimOSD code added. Beta1 2016-10-03
 * 2.1 Battery voltage bug solved. First CYCLOP++ stable release. 2016-10-13
-* 2.2 Alarm level configuration. Not-Yet-Released
+* 2.2 LowBand support added. Alarm level configuration added. 2017-03-10
 
 ##License
 This project was forked from v1.4 of the CYCLOP+ project. The original project uses an extra OLED screen to display information instead of the google screen.

@@ -4,7 +4,7 @@
    Original Author: Benoit, 10 oct. 2012
    Latest Author:   Kjell Kernen, 13 oct. 2016
 
-   Copyright (c) 2016 Kjell Kernen (Dvogonen)
+   Copyright (c) 2017 Kjell Kernen (Dvogonen)
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal

@@ -10,7 +10,7 @@
   The max7456 library by theboredengineers with a few changes by Dvogonen is
   used to control the video circuit.
 
-  Copyright (c) 2016 Kjell Kernen (Dvogonen)
+  Copyright (c) 2017 Kjell Kernen (Dvogonen)
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -109,7 +109,7 @@ void          drawBattery(unsigned char xPos, unsigned char yPos, unsigned char 
 void          drawChannelScreen( unsigned char channel);
 void          drawLeftInfoLine( void );
 void          drawLogo( unsigned char xPos, unsigned char yPos);
-void          drawOptionsScreen(unsigned char option );
+void          drawOptionsScreen(unsigned char option, unsigned char in_edit_state );
 void          drawRightInfoLine( void );
 void          drawScannerScreen( void );
 void          drawStartScreen(void);
@@ -128,9 +128,6 @@ void          resetOptions(void);
 char         *shortNameOfChannel(unsigned char channel, char *name);
 void          setRTC6715Frequency(unsigned int frequency);
 void          setOptions( void );
-void          testAlarm( void );
-void          updateScannerScreen(unsigned char position, unsigned char value );
-void          writeEeprom(void);
 
 //******************************************************************************
 //* Positions in the frequency table for the 48 channels
@@ -139,8 +136,8 @@ void          writeEeprom(void);
 
 const unsigned char positions[] PROGMEM = {
   40, 41, 42, 43, 44, 45, 46, 47, 19, 32, 18, 17, 33, 16,  7, 34,
-   8, 24,  6,  9, 25,  5, 35, 10, 26,  4, 11, 27,  3, 36, 12, 28,
-   2, 13, 29, 37,  1, 14, 30,  0, 15, 31, 38, 20, 21, 39, 22, 23
+  8, 24,  6,  9, 25,  5, 35, 10, 26,  4, 11, 27,  3, 36, 12, 28,
+  2, 13, 29, 37,  1, 14, 30,  0, 15, 31, 38, 20, 21, 39, 22, 23
 };
 
 unsigned int getPosition( unsigned char channel ) {
@@ -159,7 +156,6 @@ const unsigned int channelFrequencies[] PROGMEM = {
   5740, 5760, 5780, 5800, 5820, 5840, 5860, 5880, // Band F - FatShark \ Immersion
   5658, 5695, 5732, 5769, 5806, 5843, 5880, 5917, // Band C - Raceband
   5362, 5399, 5436, 5473, 5510, 5547, 5584, 5621  // Band L - Lowband
- 
 };
 
 unsigned int getFrequency( unsigned char channel ) {
@@ -212,7 +208,6 @@ void setup()
     currentChannel = CHANNEL_MIN;
     resetOptions();
   }
-
   // Start receiver
   setRTC6715Frequency(getFrequency(currentChannel));
 
@@ -350,7 +345,7 @@ void loop()
 
 //******************************************************************************
 //* function: resetOptions
-//*         : All options are reset to their default values
+//*         : Resets all configuration settings to their default values
 //******************************************************************************
 void resetOptions(void) {
   options[BATTERY_TYPE_OPTION]     = BATTERY_TYPE_DEFAULT;
@@ -358,12 +353,13 @@ void resetOptions(void) {
   options[INFO_LINE_OPTION]        = INFO_LINE_DEFAULT;
   options[INFO_LINE_POS_OPTION]    = INFO_LINE_POS_DEFAULT;
   options[BATTERY_ALARM_OPTION]    = BATTERY_ALARM_DEFAULT;
-  options[ALARM_LEVEL_DEFAULT]     = ALARM_LEVEL_DEFAULT;
+  options[ALARM_LEVEL_OPTION]     = ALARM_LEVEL_DEFAULT;
   options[LOW_BAND_OPTION]         = LOW_BAND_DEFAULT;
 }
 
 //******************************************************************************
 //* function: writeEeprom
+//*         : Writes all configuration settings to nonvolatile memory
 //******************************************************************************
 void writeEeprom(void) {
   unsigned char i;
@@ -375,6 +371,7 @@ void writeEeprom(void) {
 
 //******************************************************************************
 //* function: readEeprom
+//*         : Reads all configuration settings from nonvolatile memory
 //******************************************************************************
 bool readEeprom(void) {
   unsigned char i;
@@ -389,8 +386,8 @@ bool readEeprom(void) {
 //******************************************************************************
 //* function: get_click_type
 //*         : Polls the specified pin and returns the type of click that was
-//*         : performed NO_CLICK, SINGLE_CLICK, DOUBLE_CLICK, LONG_CLICK
-//*         : or LONG_LONG_CLICK
+//*         : performed NO_CLICK, SINGLE_CLICK, DOUBLE_CLICK, LONG_CLICK,
+//*         : LONG_LONG_CLICK or WAKEUP_CLICK
 //******************************************************************************
 unsigned char getClickType(unsigned char buttonPin) {
   unsigned int timer = 0;
@@ -451,10 +448,10 @@ unsigned char previousChannel(unsigned char channel)
 {
   if (channel > CHANNEL_MAX)
     return CHANNEL_MAX;
-    
+
   if ( channel == CHANNEL_MIN )
     return CHANNEL_MAX;
-    
+
   return channel - 1;
 }
 
@@ -482,9 +479,8 @@ unsigned char bestChannelMatch( unsigned int frequency )
 
 //******************************************************************************
 //* function: graphicScanner
-//*         : scans the 5.8 GHz band in 5 MHz increments and draws a graphical
-//*         : representation. when the button is pressed the currently
-//*         : scanned frequency is returned.
+//*         : scans the 5.8 GHz band and draws a graphical representation.
+//*         : when the button is pressed the current frequency is returned.
 //******************************************************************************
 unsigned int graphicScanner( unsigned int frequency ) {
   unsigned char i;
@@ -591,6 +587,7 @@ unsigned int autoScan( unsigned int frequency ) {
 }
 //******************************************************************************
 //* function: averageAnalogRead
+//*         : used to read from an anlog pin
 //*         : returns an averaged value between (in theory) 0 and 1024
 //*         : this function is called often, so it is speed optimized
 //******************************************************************************
@@ -678,10 +675,10 @@ unsigned int calcFrequencyData( unsigned int frequency )
 //*         : please note that the synth register A is assumed to have default
 //*         : values.
 //*
-//* SPI data: 4  bits  Register Address  LSB first
-//*         : 1  bit   Read or Write     0=Read 1=Write
+//* SPI data:  4 bits  Register Address  LSB first
+//*         :  1 bit   Read or Write     0=Read 1=Write
 //*         : 13 bits  N-Register Data   LSB first
-//*         : 7  bits  A-Register        LSB first
+//*         :  7 bits  A-Register        LSB first
 //******************************************************************************
 void setRTC6715Frequency(unsigned int frequency)
 {
@@ -846,7 +843,7 @@ void setOptions()
   long redrawTimer = 0;
 
   // Display option screen
-  drawOptionsScreen( menuSelection );
+  drawOptionsScreen( menuSelection, in_edit_state );
 
   // Let the user release the button
   getClickType( BUTTON_PIN );
@@ -863,14 +860,24 @@ void setOptions()
 
         case SINGLE_CLICK:    // increase option
           if (menuSelection == ALARM_LEVEL_OPTION)
-            options[ALARM_LEVEL_OPTION]++;
+          {
+            if (options[ALARM_LEVEL_OPTION] == 0)
+              options[ALARM_LEVEL_OPTION] = 1;
+            else
+              options[ALARM_LEVEL_OPTION] = options[ALARM_LEVEL_OPTION] << 1;
+          }
           else
             options[menuSelection] = !options[menuSelection];
           break;
 
         case DOUBLE_CLICK:    // decrease option
           if (menuSelection == ALARM_LEVEL_OPTION)
-            options[ALARM_LEVEL_OPTION]--;
+          {
+            if (options[ALARM_LEVEL_OPTION] == 0)
+              options[ALARM_LEVEL_OPTION] = 128;
+            else
+              options[ALARM_LEVEL_OPTION] = options[ALARM_LEVEL_OPTION] >> 1;
+          }
           else
             options[menuSelection] = !options[menuSelection];
           break;
@@ -913,7 +920,7 @@ void setOptions()
       }
     if (( click != NO_CLICK ) || ( millis() > redrawTimer )) {
       redrawTimer = millis() + 1000;
-      drawOptionsScreen( menuSelection );
+      drawOptionsScreen( menuSelection, in_edit_state );
     }
   }
 }
@@ -926,16 +933,22 @@ void testAlarm( void ) {
   unsigned char i;
 
   for ( i = 0; i < 3; i++) {
-    analogWrite( ALARM_PIN, 32 ); delay(ALARM_MIN_ON);
-    analogWrite( ALARM_PIN, 0 );  delay(ALARM_MIN_OFF);
+    analogWrite( ALARM_PIN, options[ALARM_LEVEL_OPTION] ); 
+    delay(ALARM_MIN_ON);
+    analogWrite( ALARM_PIN, 0 );  
+    delay(ALARM_MIN_OFF);
   }
   for (i = 0; i < 3; i++) {
-    analogWrite( ALARM_PIN, 32 ); delay(ALARM_MED_ON);
-    analogWrite( ALARM_PIN, 0 );  delay(ALARM_MED_OFF);
+    analogWrite( ALARM_PIN, options[ALARM_LEVEL_OPTION] ); 
+    delay(ALARM_MED_ON);
+    analogWrite( ALARM_PIN, 0 );  
+    delay(ALARM_MED_OFF);
   }
   for (i = 0; i < 3; i++) {
-    analogWrite( ALARM_PIN, 32 ); delay(ALARM_MAX_ON);
-    analogWrite( ALARM_PIN, 0 );  delay(ALARM_MAX_OFF);
+    analogWrite( ALARM_PIN, options[ALARM_LEVEL_OPTION] ); 
+    delay(ALARM_MAX_ON);
+    analogWrite( ALARM_PIN, 0 );  
+    delay(ALARM_MAX_OFF);
   }
   analogWrite( ALARM_PIN, 0 );
 }
@@ -1111,9 +1124,9 @@ void drawScannerScreen( void ) {
   osd(CMD_SET_X, 0);
   osd(CMD_SET_Y, 12);
   if ( options[LOW_BAND_OPTION] )
-    osd_string("  5.35       5.60       5.95");
+    osd_string(" 5.35       5.60       5.95");
   else
-    osd_string("  5.65       5.80       5.95");
+    osd_string(" 5.65       5.80       5.95");
 }
 
 //******************************************************************************
@@ -1204,7 +1217,7 @@ void drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value, bo
 //******************************************************************************
 //* function: drawOptionsScreen
 //******************************************************************************
-void drawOptionsScreen(unsigned char option ) {
+void drawOptionsScreen(unsigned char option, unsigned char in_edit_state ) {
   unsigned char i, j;
 
   drawStartScreen();
@@ -1219,11 +1232,13 @@ void drawOptionsScreen(unsigned char option ) {
     osd( CMD_SET_X, 0 );
     if (j >= (MAX_OPTIONS + MAX_COMMANDS))
       j = 0;
-    if (j == option) {
+
+    if ((j == option) && !in_edit_state) {
       osd( CMD_ENABLE_FILL );
       osd( CMD_ENABLE_INVERSE );
     }
-    else {
+    else
+    {
       osd( CMD_DISABLE_FILL );
       osd( CMD_DISABLE_INVERSE );
     }
@@ -1238,6 +1253,15 @@ void drawOptionsScreen(unsigned char option ) {
       case RESET_SETTINGS_COMMAND:   osd_string("reset settings     "); break;
       case TEST_ALARM_COMMAND:       osd_string("test alarm         "); break;
       case EXIT_COMMAND:             osd_string("exit               "); break;
+    }
+    if ((j == option) && in_edit_state) {
+      osd( CMD_ENABLE_FILL );
+      osd( CMD_ENABLE_INVERSE );
+    }
+    else
+    {
+      osd( CMD_DISABLE_FILL );
+      osd( CMD_DISABLE_INVERSE );
     }
     if (j < MAX_OPTIONS) {
       switch (j) {

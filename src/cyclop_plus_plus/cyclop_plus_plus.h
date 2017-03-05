@@ -10,7 +10,7 @@
   The max7456 library by theboredengineers with a few changes by Dvogonen is
   used to control the video circuit.
 
-  Copyright (c) 2016 Kjell Kernen (Dvogonen)
+  Copyright (c) 2017 Kjell Kernen (Dvogonen)
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
