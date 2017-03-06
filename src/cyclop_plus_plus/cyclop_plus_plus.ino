@@ -114,6 +114,7 @@ void          drawRightInfoLine( void );
 void          drawScannerScreen( void );
 void          drawStartScreen(void);
 unsigned char getClickType(unsigned char buttonPin);
+unsigned int  getVoltage( void );
 unsigned int  graphicScanner( unsigned int frequency );
 char         *longNameOfChannel(unsigned char channel, char *name);
 unsigned char nextChannel( unsigned char channel);
@@ -330,7 +331,7 @@ void loop()
     if (millis() > alarmTimer) {
       alarmSoundOn = !alarmSoundOn;
       if (alarmSoundOn) {
-        analogWrite( ALARM_PIN, options[ALARM_LEVEL_OPTION] );
+        analogWrite( ALARM_PIN, 1 << options[ALARM_LEVEL_OPTION] );
         alarmTimer = millis() + alarmOnPeriod;
       }
       else {
@@ -348,34 +349,35 @@ void loop()
 //*         : Resets all configuration settings to their default values
 //******************************************************************************
 void resetOptions(void) {
+  options[BATTERY_ALARM_OPTION]    = BATTERY_ALARM_DEFAULT;
+  options[ALARM_LEVEL_OPTION]      = ALARM_LEVEL_DEFAULT;
   options[BATTERY_TYPE_OPTION]     = BATTERY_TYPE_DEFAULT;
+  options[BATTERY_CALIB_OPTION]    = BATTERY_CALIB_DEFAULT;
   options[SHOW_STARTSCREEN_OPTION] = SHOW_STARTSCREEN_DEFAULT;
   options[INFO_LINE_OPTION]        = INFO_LINE_DEFAULT;
   options[INFO_LINE_POS_OPTION]    = INFO_LINE_POS_DEFAULT;
-  options[BATTERY_ALARM_OPTION]    = BATTERY_ALARM_DEFAULT;
-  options[ALARM_LEVEL_OPTION]     = ALARM_LEVEL_DEFAULT;
   options[LOW_BAND_OPTION]         = LOW_BAND_DEFAULT;
 }
 
 //******************************************************************************
 //* function: writeEeprom
-//*         : Writes all configuration settings to nonvolatile memory
+//*         : Writes configuration settings to nonvolatile memory
 //******************************************************************************
 void writeEeprom(void) {
   unsigned char i;
   EEPROM.write(EEPROM_CHANNEL, currentChannel);
   for (i = 0; i < MAX_OPTIONS; i++)
     EEPROM.write(EEPROM_OPTIONS + i, options[i]);
-  EEPROM.write(EEPROM_CHECK, 238);
+  EEPROM.write(EEPROM_CHECK, 239);
 }
 
 //******************************************************************************
 //* function: readEeprom
-//*         : Reads all configuration settings from nonvolatile memory
+//*         : Reads configuration settings from nonvolatile memory
 //******************************************************************************
 bool readEeprom(void) {
   unsigned char i;
-  if (EEPROM.read(EEPROM_CHECK) != 238)
+  if (EEPROM.read(EEPROM_CHECK) != 239)
     return false;
   currentChannel =   EEPROM.read(EEPROM_CHANNEL);
   for (i = 0; i < MAX_OPTIONS; i++)
@@ -773,6 +775,16 @@ void spiEnableHigh()
 }
 
 //******************************************************************************
+//* function: getVoltage
+//*         : returns battery voltage as an unsigned integer.
+//*         : The value is multiplied with 10, 12volts => 120, 7.2Volts => 72
+//******************************************************************************
+unsigned int getVoltage( void )
+{
+  return ( 50 + (((averageAnalogRead(VOLTAGE_METER_PIN) - 250 + (options[BATTERY_CALIB_OPTION] - 128))) / 5 ));
+}
+
+//******************************************************************************
 //* function: batteryMeter
 //*         : Measured voltage values
 //*         : 3s LiPo
@@ -790,16 +802,15 @@ void batteryMeter( unsigned char x, unsigned char y, bool showNumbers )
   unsigned int maxV;
 
   if (options[BATTERY_TYPE_OPTION]) { /* == 2s */
-    minV = 359;
-    maxV = 411;
+    minV = 72;
+    maxV = 84;
   }
   else {                            /* 3s */
-    minV = 546;
-    maxV = 639;
+    minV = 108;
+    maxV = 126;
   }
 
-  voltage = averageAnalogRead(VOLTAGE_METER_PIN);
-
+  voltage = getVoltage();
   if (voltage >= maxV)
     value = 99;
   else if (voltage <= minV)
@@ -861,10 +872,13 @@ void setOptions()
         case SINGLE_CLICK:    // increase option
           if (menuSelection == ALARM_LEVEL_OPTION)
           {
-            if (options[ALARM_LEVEL_OPTION] == 0)
-              options[ALARM_LEVEL_OPTION] = 1;
-            else
-              options[ALARM_LEVEL_OPTION] = options[ALARM_LEVEL_OPTION] << 1;
+            if (options[ALARM_LEVEL_OPTION] < 8 )
+              options[ALARM_LEVEL_OPTION]++;
+          }
+          else if (menuSelection == BATTERY_CALIB_OPTION)
+          {
+            if (options[BATTERY_CALIB_OPTION] < 255)
+              options[BATTERY_CALIB_OPTION]++;
           }
           else
             options[menuSelection] = !options[menuSelection];
@@ -873,10 +887,13 @@ void setOptions()
         case DOUBLE_CLICK:    // decrease option
           if (menuSelection == ALARM_LEVEL_OPTION)
           {
-            if (options[ALARM_LEVEL_OPTION] == 0)
-              options[ALARM_LEVEL_OPTION] = 128;
-            else
-              options[ALARM_LEVEL_OPTION] = options[ALARM_LEVEL_OPTION] >> 1;
+            if (options[ALARM_LEVEL_OPTION] > 1)
+              options[ALARM_LEVEL_OPTION]--;
+          }
+          else if (menuSelection == BATTERY_CALIB_OPTION)
+          {
+            if (options[BATTERY_CALIB_OPTION] > 0)
+              options[BATTERY_CALIB_OPTION]--;
           }
           else
             options[menuSelection] = !options[menuSelection];
@@ -933,21 +950,21 @@ void testAlarm( void ) {
   unsigned char i;
 
   for ( i = 0; i < 3; i++) {
-    analogWrite( ALARM_PIN, options[ALARM_LEVEL_OPTION] ); 
+    analogWrite( ALARM_PIN, 1 << options[ALARM_LEVEL_OPTION] );
     delay(ALARM_MIN_ON);
-    analogWrite( ALARM_PIN, 0 );  
+    analogWrite( ALARM_PIN, 0 );
     delay(ALARM_MIN_OFF);
   }
   for (i = 0; i < 3; i++) {
-    analogWrite( ALARM_PIN, options[ALARM_LEVEL_OPTION] ); 
+    analogWrite( ALARM_PIN, 1 << options[ALARM_LEVEL_OPTION] );
     delay(ALARM_MED_ON);
-    analogWrite( ALARM_PIN, 0 );  
+    analogWrite( ALARM_PIN, 0 );
     delay(ALARM_MED_OFF);
   }
   for (i = 0; i < 3; i++) {
-    analogWrite( ALARM_PIN, options[ALARM_LEVEL_OPTION] ); 
+    analogWrite( ALARM_PIN, 1 << options[ALARM_LEVEL_OPTION] );
     delay(ALARM_MAX_ON);
-    analogWrite( ALARM_PIN, 0 );  
+    analogWrite( ALARM_PIN, 0 );
     delay(ALARM_MAX_OFF);
   }
   analogWrite( ALARM_PIN, 0 );
@@ -1219,6 +1236,7 @@ void drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value, bo
 //******************************************************************************
 void drawOptionsScreen(unsigned char option, unsigned char in_edit_state ) {
   unsigned char i, j;
+  unsigned int voltage = getVoltage();
 
   drawStartScreen();
   if (option != 0)
@@ -1243,12 +1261,13 @@ void drawOptionsScreen(unsigned char option, unsigned char in_edit_state ) {
       osd( CMD_DISABLE_INVERSE );
     }
     switch (j) {
+      case BATTERY_ALARM_OPTION:     osd_string("battery alarm      "); break;
+      case ALARM_LEVEL_OPTION:       osd_string("alarm level        "); break;
       case BATTERY_TYPE_OPTION:      osd_string("battery type       "); break;
+      case BATTERY_CALIB_OPTION:     osd_string("volt calibration   "); break;
       case SHOW_STARTSCREEN_OPTION:  osd_string("show start screen  "); break;
       case INFO_LINE_OPTION:         osd_string("constant info line "); break;
       case INFO_LINE_POS_OPTION:     osd_string("info line position "); break;
-      case BATTERY_ALARM_OPTION:     osd_string("battery alarm      "); break;
-      case ALARM_LEVEL_OPTION:       osd_string("alarm level        "); break;
       case LOW_BAND_OPTION:          osd_string("display low band   "); break;
       case RESET_SETTINGS_COMMAND:   osd_string("reset settings     "); break;
       case TEST_ALARM_COMMAND:       osd_string("test alarm         "); break;
@@ -1265,17 +1284,18 @@ void drawOptionsScreen(unsigned char option, unsigned char in_edit_state ) {
     }
     if (j < MAX_OPTIONS) {
       switch (j) {
+        case BATTERY_ALARM_OPTION:    osd_string(options[j] ? "yes    " : "no     "); break;
+        case ALARM_LEVEL_OPTION:      osd_int(options[j]); osd_string("  "); break;
         case BATTERY_TYPE_OPTION:     osd_string(options[j] ? "2s lipo" : "3s lipo"); break;
+        case BATTERY_CALIB_OPTION:    osd_int(voltage/10); osd_string("."); osd_int(voltage%10);  osd_string("  ");break;
         case SHOW_STARTSCREEN_OPTION: osd_string(options[j] ? "yes    " : "no     "); break;
         case INFO_LINE_OPTION:        osd_string(options[j] ? "yes    " : "no     "); break;
         case INFO_LINE_POS_OPTION:    osd_string(options[j] ? "left   " : "right  "); break;
-        case BATTERY_ALARM_OPTION:    osd_string(options[j] ? "yes    " : "no     "); break;
-        case ALARM_LEVEL_OPTION:      osd_int(options[j]); osd_string("  "); break;
         case LOW_BAND_OPTION:         osd_string(options[j] ? "yes    " : "no     "); break;
       }
     }
     else
-      osd_string("execute");
+      osd_string("       ");
   }
   // Make sure that the inverse is disabled even if option was on last line
   osd( CMD_DISABLE_INVERSE );

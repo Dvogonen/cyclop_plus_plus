@@ -34,28 +34,30 @@
 #define cyclop_plus_osd_h
 
 // User Configuration Options
-#define BATTERY_TYPE_OPTION       0
-#define SHOW_STARTSCREEN_OPTION   1
-#define INFO_LINE_OPTION          2
-#define INFO_LINE_POS_OPTION      3
-#define BATTERY_ALARM_OPTION      4
-#define ALARM_LEVEL_OPTION        5
-#define LOW_BAND_OPTION           6
+#define BATTERY_ALARM_OPTION      0
+#define ALARM_LEVEL_OPTION        1
+#define BATTERY_TYPE_OPTION       2
+#define BATTERY_CALIB_OPTION      3 
+#define SHOW_STARTSCREEN_OPTION   4
+#define INFO_LINE_OPTION          5
+#define INFO_LINE_POS_OPTION      6
+#define LOW_BAND_OPTION           7
 
-#define BATTERY_TYPE_DEFAULT      0  /* 3s    */
-#define SHOW_STARTSCREEN_DEFAULT  1  /* Yes   */
-#define INFO_LINE_DEFAULT         1  /* On    */
-#define INFO_LINE_POS_DEFAULT     0  /* Right */
-#define BATTERY_ALARM_DEFAULT     1  /* On    */
-#define ALARM_LEVEL_DEFAULT       32 /* value 0-255   */
-#define LOW_BAND_DEFAULT          1  /* Yes */
+#define BATTERY_ALARM_DEFAULT     1   /* On    */
+#define ALARM_LEVEL_DEFAULT       5   /* value 1-8   */
+#define BATTERY_TYPE_DEFAULT      0   /* 3s    */
+#define BATTERY_CALIB_DEFAULT     128 /* 0 */
+#define SHOW_STARTSCREEN_DEFAULT  1   /* Yes   */
+#define INFO_LINE_DEFAULT         1   /* On    */
+#define INFO_LINE_POS_DEFAULT     0   /* Right */
+#define LOW_BAND_DEFAULT          1   /* Yes */
 
-#define MAX_OPTIONS               7
+#define MAX_OPTIONS               8
 
 // User Configuration Commands
-#define TEST_ALARM_COMMAND        7
-#define RESET_SETTINGS_COMMAND    8
-#define EXIT_COMMAND              9
+#define TEST_ALARM_COMMAND        8
+#define RESET_SETTINGS_COMMAND    9
+#define EXIT_COMMAND              10
 #define MAX_COMMANDS              3
 
 // Number of lines in configuration menu
