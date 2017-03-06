@@ -778,6 +778,11 @@ void spiEnableHigh()
 //* function: getVoltage
 //*         : returns battery voltage as an unsigned integer.
 //*         : The value is multiplied with 10, 12volts => 120, 7.2Volts => 72
+//*
+//*         : Measured voltage values: 
+//*         : 12.6v = 639   10.8v = 546   8.4v = 411   7.2v = 359
+//*         : The result is not linear...
+//*         : A rough estimation is that 5 steps correspond to 0.1 volts
 //******************************************************************************
 unsigned int getVoltage( void )
 {
@@ -786,13 +791,6 @@ unsigned int getVoltage( void )
 
 //******************************************************************************
 //* function: batteryMeter
-//*         : Measured voltage values
-//*         : 3s LiPo
-//*         : max = 4.2v * 3 = 12.6v = 639
-//*         : min = 3.6v * 3 = 10.8v = 546
-//*         : 2s LiPo
-//*         : max = 4.2v * 2 = 8.4v = 411
-//*         : min = 3.6v * 2 = 7.2v = 359
 //******************************************************************************
 void batteryMeter( unsigned char x, unsigned char y, bool showNumbers )
 {
@@ -801,15 +799,16 @@ void batteryMeter( unsigned char x, unsigned char y, bool showNumbers )
   unsigned int minV;
   unsigned int maxV;
 
-  if (options[BATTERY_TYPE_OPTION]) { /* == 2s */
-    minV = 72;
+  if (options[BATTERY_TYPE_OPTION]) 
+  { /* 2s lipo battery*/
+    minV = 70;
     maxV = 84;
   }
-  else {                            /* 3s */
-    minV = 108;
+  else 
+  { /* 3s lipo battery */
+    minV = 105;
     maxV = 126;
   }
-
   voltage = getVoltage();
   if (voltage >= maxV)
     value = 99;
