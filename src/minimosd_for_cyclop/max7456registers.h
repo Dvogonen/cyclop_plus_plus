@@ -639,7 +639,7 @@ struct PIXEL
 union LINE
 {
   /* the whole line*/
-  byte byte[3];
+  byte bytes[3];
   
   /* individual 4-pixels access*/
   struct PIXEL pixels[3];

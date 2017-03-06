@@ -460,8 +460,6 @@ void Max7456::CARACT2ByteArray(const CARACT car, byte *array)
 {
   for (int i = 0 ; i < 54 ; i++)
     array[i] = car.byte[i];
-
-  return array;
 }
 
 /******************************************************************************
