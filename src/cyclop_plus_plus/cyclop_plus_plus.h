@@ -61,7 +61,7 @@
 #define MAX_COMMANDS              3
 
 // Number of lines in configuration menu
-#define MAX_OPTION_LINES          (MAX_OPTIONS + MAX_COMMANDS)
+#define MAX_OPTION_LINES          9
 
 // Minimum time info is shown on screen
 #define FORCED_SCREEN_UPDATE_MS   6000

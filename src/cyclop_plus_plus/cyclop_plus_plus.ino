@@ -801,12 +801,12 @@ void batteryMeter( unsigned char x, unsigned char y, bool showNumbers )
 
   if (options[BATTERY_TYPE_OPTION]) 
   { /* 2s lipo battery*/
-    minV = 70;
+    minV = 68;
     maxV = 84;
   }
   else 
   { /* 3s lipo battery */
-    minV = 105;
+    minV = 102;
     maxV = 126;
   }
   voltage = getVoltage();
@@ -876,8 +876,8 @@ void setOptions()
           }
           else if (menuSelection == BATTERY_CALIB_OPTION)
           {
-            if (options[BATTERY_CALIB_OPTION] < 255)
-              options[BATTERY_CALIB_OPTION]++;
+            if (options[BATTERY_CALIB_OPTION] < 250)
+              options[BATTERY_CALIB_OPTION]+= 5;
           }
           else
             options[menuSelection] = !options[menuSelection];
@@ -891,8 +891,8 @@ void setOptions()
           }
           else if (menuSelection == BATTERY_CALIB_OPTION)
           {
-            if (options[BATTERY_CALIB_OPTION] > 0)
-              options[BATTERY_CALIB_OPTION]--;
+            if (options[BATTERY_CALIB_OPTION] > 5)
+              options[BATTERY_CALIB_OPTION]-=5;
           }
           else
             options[menuSelection] = !options[menuSelection];
@@ -1284,9 +1284,9 @@ void drawOptionsScreen(unsigned char option, unsigned char in_edit_state ) {
     if (j < MAX_OPTIONS) {
       switch (j) {
         case BATTERY_ALARM_OPTION:    osd_string(options[j] ? "yes    " : "no     "); break;
-        case ALARM_LEVEL_OPTION:      osd_int(options[j]); osd_string("  "); break;
+        case ALARM_LEVEL_OPTION:      osd_int(options[j]); osd_string("      "); break;
         case BATTERY_TYPE_OPTION:     osd_string(options[j] ? "2s lipo" : "3s lipo"); break;
-        case BATTERY_CALIB_OPTION:    osd_int(voltage/10); osd_string("."); osd_int(voltage%10);  osd_string("  ");break;
+        case BATTERY_CALIB_OPTION:    osd_int(voltage/10); osd_string("."); osd_int(voltage%10);  osd_string("   ");break;
         case SHOW_STARTSCREEN_OPTION: osd_string(options[j] ? "yes    " : "no     "); break;
         case INFO_LINE_OPTION:        osd_string(options[j] ? "yes    " : "no     "); break;
         case INFO_LINE_POS_OPTION:    osd_string(options[j] ? "left   " : "right  "); break;
