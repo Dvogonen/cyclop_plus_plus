@@ -32,6 +32,7 @@
 ********************************************************************************/
 // Application includes
 #include "cyclop_plus_plus.h"
+#include "rtc6715.h"
 
 // Library includes
 #include <avr/pgmspace.h>
@@ -127,7 +128,6 @@ unsigned char previousChannel( unsigned char channel);
 bool          readEeprom(void);
 void          resetOptions(void);
 char         *shortNameOfChannel(unsigned char channel, char *name);
-void          setRTC6715Frequency(unsigned int frequency);
 void          setOptions( void );
 
 //******************************************************************************
@@ -180,6 +180,7 @@ unsigned int  alarmOffPeriod = 0;
 unsigned char options[MAX_OPTIONS];
 unsigned char saveScreenActive = 0;
 unsigned char screenCleaning = 0;
+rtc6715 receiver( SPI_CLOCK_PIN, SLAVE_SELECT_PIN, SPI_DATA_PIN );
 
 //******************************************************************************
 //* function: setup
@@ -199,18 +200,13 @@ void setup()
   // initialize alarm
   pinMode(ALARM_PIN, OUTPUT );
 
-  // SPI pins for RX control
-  pinMode (SLAVE_SELECT_PIN, OUTPUT);
-  pinMode (SPI_DATA_PIN, OUTPUT);
-  pinMode (SPI_CLOCK_PIN, OUTPUT);
-
   // Read current channel and options data from EEPROM
   if (!readEeprom()) {
     currentChannel = CHANNEL_MIN;
     resetOptions();
   }
   // Start receiver
-  setRTC6715Frequency(getFrequency(currentChannel));
+  receiver.setFrequency(getFrequency(currentChannel));
 
   // Initialize the display
   Serial.begin(57600);
@@ -271,14 +267,14 @@ void loop()
 
     case SINGLE_CLICK: // up the frequency
       currentChannel = nextChannel( currentChannel );
-      setRTC6715Frequency(getFrequency(currentChannel));
+      receiver.setFrequency(getFrequency(currentChannel));
       displayUpdateTimer = 0;
       screenCleaning = 1;
       break;
 
     case DOUBLE_CLICK:  // down the frequency
       currentChannel = previousChannel( currentChannel );
-      setRTC6715Frequency(getFrequency(currentChannel));
+      receiver.setFrequency(getFrequency(currentChannel));
       displayUpdateTimer = 0;
       screenCleaning = 1;
       break;
@@ -506,7 +502,7 @@ unsigned int graphicScanner( unsigned int frequency ) {
       scanFrequency += SCANNING_STEP;
       if (scanFrequency > FREQUENCY_MAX)
         scanFrequency = FREQUENCY_MIN;
-      setRTC6715Frequency(scanFrequency);
+      receiver.setFrequency(scanFrequency);
       delay( RSSI_STABILITY_DELAY_MS );
       scanRssi = averageAnalogRead(RSSI_PIN);
       if (!i)
@@ -519,7 +515,7 @@ unsigned int graphicScanner( unsigned int frequency ) {
   // Fine tuning
   scanFrequency = scanFrequency - 20;
   for (i = 0; i < 20; i++, scanFrequency += 2) {
-    setRTC6715Frequency(scanFrequency);
+    receiver.setFrequency(scanFrequency);
     delay( RSSI_STABILITY_DELAY_MS );
     scanRssi = averageAnalogRead(RSSI_PIN);
     if (bestRssi < scanRssi) {
@@ -531,7 +527,7 @@ unsigned int graphicScanner( unsigned int frequency ) {
   osd(CMD_ENABLE_VIDEO);
 
   // Return the best frequency
-  setRTC6715Frequency(bestFrequency);
+  receiver.setFrequency(bestFrequency);
   return (bestFrequency);
 }
 
@@ -560,7 +556,7 @@ unsigned int autoScan( unsigned int frequency ) {
       scanFrequency += 10;
     else
       scanFrequency = FREQUENCY_MIN;
-    setRTC6715Frequency(scanFrequency);
+    receiver.setFrequency(scanFrequency);
     delay( RSSI_STABILITY_DELAY_MS );
     scanRssi = averageAnalogRead(RSSI_PIN);
     if (bestRssi < scanRssi) {
@@ -572,7 +568,7 @@ unsigned int autoScan( unsigned int frequency ) {
   scanFrequency = bestFrequency - 20;
   bestRssi = 0;
   for (i = 0; i < 20; i++, scanFrequency += 2) {
-    setRTC6715Frequency(scanFrequency);
+    receiver.setFrequency(scanFrequency);
     delay( RSSI_STABILITY_DELAY_MS );
     scanRssi = averageAnalogRead(RSSI_PIN);
     if (bestRssi < scanRssi) {
@@ -584,7 +580,7 @@ unsigned int autoScan( unsigned int frequency ) {
   osd(CMD_ENABLE_VIDEO);
 
   // Return the best frequency
-  setRTC6715Frequency(bestFrequency);
+  receiver.setFrequency(bestFrequency);
   return (bestFrequency);
 }
 //******************************************************************************
@@ -652,127 +648,7 @@ char *longNameOfChannel(unsigned char channel, char *name)
   return name;
 }
 
-//******************************************************************************
-//* function: calcFrequencyData
-//*         : calculates the frequency value for the syntheziser register B of
-//*         : the RTC6751 circuit that is used within the RX5808/RX5880 modules.
-//*         : this value is inteded to be loaded to register at adress 1 via SPI
-//*         :
-//*  Formula: frequency = ( N*32 + A )*2 + 479
-//******************************************************************************
-unsigned int calcFrequencyData( unsigned int frequency )
-{
-  unsigned int N;
-  unsigned char A;
-  frequency = (frequency - 479) / 2;
-  N = frequency / 32;
-  A = frequency % 32;
-  return (N << 7) |  A;
-}
 
-//******************************************************************************
-//* function: setRTC6715Frequency
-//*         : for a given frequency the register setting for synth register B of
-//*         : the RTC6715 circuit is calculated and bitbanged via the SPI bus
-//*         : please note that the synth register A is assumed to have default
-//*         : values.
-//*
-//* SPI data:  4 bits  Register Address  LSB first
-//*         :  1 bit   Read or Write     0=Read 1=Write
-//*         : 13 bits  N-Register Data   LSB first
-//*         :  7 bits  A-Register        LSB first
-//******************************************************************************
-void setRTC6715Frequency(unsigned int frequency)
-{
-  unsigned int sRegB;
-  unsigned char i;
-
-  sRegB = calcFrequencyData(frequency);
-
-  // Bit bang the syntheziser register
-
-  // Clock
-  spiEnableHigh();
-  delayMicroseconds(1);
-  spiEnableLow();
-
-  // Address (0x1)
-  spi_1();
-  spi_0();
-  spi_0();
-  spi_0();
-
-  // Read/Write (Write)
-  spi_1();
-
-  // Data (16 LSB bits)
-  for (i = 16; i; i--, sRegB >>= 1 ) {
-    (sRegB & 0x1) ? spi_1() : spi_0();
-  }
-  // Data zero padding
-  spi_0();
-  spi_0();
-  spi_0();
-  spi_0();
-
-  // Clock
-  spiEnableHigh();
-  delayMicroseconds(1);
-
-  digitalWrite(SLAVE_SELECT_PIN, LOW);
-  digitalWrite(SPI_CLOCK_PIN, LOW);
-  digitalWrite(SPI_DATA_PIN, LOW);
-}
-
-//******************************************************************************
-//* function: spi_1
-//******************************************************************************
-void spi_1()
-{
-  digitalWrite(SPI_CLOCK_PIN, LOW);
-  delayMicroseconds(1);
-  digitalWrite(SPI_DATA_PIN, HIGH);
-  delayMicroseconds(1);
-  digitalWrite(SPI_CLOCK_PIN, HIGH);
-  delayMicroseconds(1);
-  digitalWrite(SPI_CLOCK_PIN, LOW);
-  delayMicroseconds(1);
-}
-
-//******************************************************************************
-//* function: spi_0
-//******************************************************************************
-void spi_0()
-{
-  digitalWrite(SPI_CLOCK_PIN, LOW);
-  delayMicroseconds(1);
-  digitalWrite(SPI_DATA_PIN, LOW);
-  delayMicroseconds(1);
-  digitalWrite(SPI_CLOCK_PIN, HIGH);
-  delayMicroseconds(1);
-  digitalWrite(SPI_CLOCK_PIN, LOW);
-  delayMicroseconds(1);
-}
-
-//******************************************************************************
-//* function: spiEnableLow
-//******************************************************************************
-void spiEnableLow()
-{
-  delayMicroseconds(1);
-  digitalWrite(SLAVE_SELECT_PIN, LOW);
-  delayMicroseconds(1);
-}
-
-//******************************************************************************
-//* function: spiEnableHigh
-//******************************************************************************
-void spiEnableHigh()
-{
-  delayMicroseconds(1);
-  digitalWrite(SLAVE_SELECT_PIN, HIGH);
-  delayMicroseconds(1);
-}
 
 //******************************************************************************
 //* function: getVoltage
