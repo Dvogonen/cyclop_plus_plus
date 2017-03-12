@@ -155,12 +155,29 @@ const unsigned int channelFrequencies[] PROGMEM = {
   5733, 5752, 5771, 5790, 5809, 5828, 5847, 5866, // Band B - Boscam B
   5705, 5685, 5665, 5645, 5885, 5905, 5925, 5945, // Band E - DJI
   5740, 5760, 5780, 5800, 5820, 5840, 5860, 5880, // Band F - FatShark \ Immersion
-  5658, 5695, 5732, 5769, 5806, 5843, 5880, 5917, // Band C - Raceband
+  5658, 5695, 5732, 5769, 5806, 5843, 5880, 5917, // Band R - Raceband
   5362, 5399, 5436, 5473, 5510, 5547, 5584, 5621  // Band L - Lowband
 };
 
 unsigned int getFrequency( unsigned char channel ) {
   return pgm_read_word_near(channelFrequencies + getPosition(channel));
+}
+//******************************************************************************
+//* Reverse lookup for frequencies in position table
+//* Direct access via array operations does not work since data is stored in
+//* flash, not in RAM. Use getRevesePositions to retrieve data
+
+const unsigned int reversePositions[] PROGMEM = {
+  39, 36, 32, 28, 25, 21, 18, 14, // Band A - Boscam A
+  16, 19, 23, 26, 30, 33, 37, 40, // Band B - Boscam B
+  13, 11, 10,  8, 43, 44, 46, 47, // Band E - DJI
+  17, 20, 24, 27, 31, 34, 38, 41, // Band F - FatShark \ Immersion
+  9,  12, 15, 22, 29, 35, 42, 45, // Band R - Raceband
+  0,   1,  2,  3,  4,  5,  6,  7  // Band L - Lowband
+};
+
+unsigned int getReversePosition( unsigned char position ) {
+  return pgm_read_word_near(reversePositions + position);
 }
 
 //******************************************************************************
@@ -181,6 +198,7 @@ unsigned char options[MAX_OPTIONS];
 unsigned char saveScreenActive = 0;
 unsigned char screenCleaning = 0;
 rtc6715 receiver( SPI_CLOCK_PIN, SLAVE_SELECT_PIN, SPI_DATA_PIN );
+unsigned char softPositions[48];
 
 //******************************************************************************
 //* function: setup
@@ -229,6 +247,35 @@ void setup()
     }
   }
   osd( CMD_CLEAR_SCREEN );
+
+  // Mark blocked channels in the softPositions array
+  for (i = 0; i < 48; i++)
+    softPositions[i] = positions[i];
+
+  if (!options[A_BAND_OPTION]) {
+    for (i = 0; i < 8; i++)
+      softPositions[getReversePosition( i )] = 255;
+  }
+  if (!options[B_BAND_OPTION]) {
+    for (i = 8; i < 16; i++)
+      softPositions[getReversePosition( i )] = 255;
+  }
+  if (!options[E_BAND_OPTION]) {
+    for (i = 16; i < 24; i++)
+      softPositions[getReversePosition( i )] = 255;
+  }
+  if (!options[F_BAND_OPTION]) {
+    for (i = 24; i < 32; i++)
+      softPositions[getReversePosition( i )] = 255;
+  }
+  if (!options[R_BAND_OPTION]) {
+    for (i = 32; i < 40; i++)
+      softPositions[getReversePosition( i )] = 255;
+  }
+  if (!options[L_BAND_OPTION]) {
+    for (i = 40; i < 48; i++)
+      softPositions[getReversePosition( i )] = 255;
+  }
 
   // Set delay time before entering screen save mode
   forceDisplayTimer = millis() + FORCED_SCREEN_UPDATE_MS;
@@ -352,7 +399,12 @@ void resetOptions(void) {
   options[SHOW_STARTSCREEN_OPTION] = SHOW_STARTSCREEN_DEFAULT;
   options[INFO_LINE_OPTION]        = INFO_LINE_DEFAULT;
   options[INFO_LINE_POS_OPTION]    = INFO_LINE_POS_DEFAULT;
-  options[LOW_BAND_OPTION]         = LOW_BAND_DEFAULT;
+  options[A_BAND_OPTION]           = A_BAND_DEFAULT;
+  options[B_BAND_OPTION]           = B_BAND_DEFAULT;
+  options[E_BAND_OPTION]           = E_BAND_DEFAULT;
+  options[F_BAND_OPTION]           = F_BAND_DEFAULT;
+  options[R_BAND_OPTION]           = R_BAND_DEFAULT;
+  options[L_BAND_OPTION]           = L_BAND_DEFAULT;
 }
 
 //******************************************************************************
@@ -364,7 +416,7 @@ void writeEeprom(void) {
   EEPROM.write(EEPROM_CHANNEL, currentChannel);
   for (i = 0; i < MAX_OPTIONS; i++)
     EEPROM.write(EEPROM_OPTIONS + i, options[i]);
-  EEPROM.write(EEPROM_CHECK, 239);
+  EEPROM.write(EEPROM_CHECK, VER_EEPROM);
 }
 
 //******************************************************************************
@@ -373,7 +425,7 @@ void writeEeprom(void) {
 //******************************************************************************
 bool readEeprom(void) {
   unsigned char i;
-  if (EEPROM.read(EEPROM_CHECK) != 239)
+  if (EEPROM.read(EEPROM_CHECK) != VER_EEPROM)
     return false;
   currentChannel =   EEPROM.read(EEPROM_CHANNEL);
   for (i = 0; i < MAX_OPTIONS; i++)
@@ -431,7 +483,7 @@ unsigned char getClickType(unsigned char buttonPin) {
 //******************************************************************************
 //* function: nextChannel
 //******************************************************************************
-unsigned char nextChannel(unsigned char channel)
+unsigned char incrementChannel(unsigned char channel)
 {
   if (channel > (CHANNEL_MAX - 1))
     return CHANNEL_MIN;
@@ -439,10 +491,18 @@ unsigned char nextChannel(unsigned char channel)
     return channel + 1;
 }
 
+unsigned char nextChannel(unsigned char channel)
+{
+  do {
+    channel = incrementChannel( channel);
+  } while (softPositions[channel] == 255);
+  return channel;
+}
+
 //******************************************************************************
 //* function: previousChannel
 //******************************************************************************
-unsigned char previousChannel(unsigned char channel)
+unsigned char decrementChannel(unsigned char channel)
 {
   if (channel > CHANNEL_MAX)
     return CHANNEL_MAX;
@@ -451,6 +511,14 @@ unsigned char previousChannel(unsigned char channel)
     return CHANNEL_MAX;
 
   return channel - 1;
+}
+
+unsigned char previousChannel(unsigned char channel)
+{
+  do {
+    channel = decrementChannel( channel );
+  } while (softPositions[channel] == 255);
+  return channel;
 }
 
 //******************************************************************************
@@ -496,7 +564,7 @@ unsigned int graphicScanner( unsigned int frequency ) {
   // Disable video
   osd(CMD_DISABLE_VIDEO);
 
-  // Cycle through the band in 10MHz steps
+  // Cycle through the band
   while ((clickType = getClickType(BUTTON_PIN)) == NO_CLICK) {
     for (i = 0; i < 2; i++) {
       scanFrequency += SCANNING_STEP;
@@ -545,15 +613,15 @@ unsigned int autoScan( unsigned int frequency ) {
   osd(CMD_DISABLE_VIDEO);
 
   // Skip 10 MHz forward to avoid detecting the current channel
-  scanFrequency = frequency + SCANNING_STEP;
+  scanFrequency = frequency + 10;
   if (!(scanFrequency % 2))
     scanFrequency++;        // RTC6715 can only generate odd frequencies
 
   // Coarse tuning
   bestFrequency = scanFrequency;
   for (i = 0; i < 60 && (scanRssi < RSSI_TRESHOLD); i++) {
-    if ( scanFrequency <= (FREQUENCY_MAX - 10))
-      scanFrequency += 10;
+    if ( scanFrequency <= (FREQUENCY_MAX - SCANNING_STEP))
+      scanFrequency += SCANNING_STEP;
     else
       scanFrequency = FREQUENCY_MIN;
     receiver.setFrequency(scanFrequency);
@@ -655,7 +723,7 @@ char *longNameOfChannel(unsigned char channel, char *name)
 //*         : returns battery voltage as an unsigned integer.
 //*         : The value is multiplied with 10, 12volts => 120, 7.2Volts => 72
 //*
-//*         : Measured voltage values: 
+//*         : Measured voltage values:
 //*         : 12.6v = 639   10.8v = 546   8.4v = 411   7.2v = 359
 //*         : The result is not linear...
 //*         : A rough estimation is that 5 steps correspond to 0.1 volts
@@ -675,12 +743,12 @@ void batteryMeter( unsigned char x, unsigned char y, bool showNumbers )
   unsigned int minV;
   unsigned int maxV;
 
-  if (options[BATTERY_TYPE_OPTION]) 
+  if (options[BATTERY_TYPE_OPTION])
   { /* 2s lipo battery*/
     minV = 68;
     maxV = 84;
   }
-  else 
+  else
   { /* 3s lipo battery */
     minV = 102;
     maxV = 126;
@@ -753,7 +821,7 @@ void setOptions()
           else if (menuSelection == BATTERY_CALIB_OPTION)
           {
             if (options[BATTERY_CALIB_OPTION] < 250)
-              options[BATTERY_CALIB_OPTION]+= 5;
+              options[BATTERY_CALIB_OPTION] += 5;
           }
           else
             options[menuSelection] = !options[menuSelection];
@@ -768,7 +836,7 @@ void setOptions()
           else if (menuSelection == BATTERY_CALIB_OPTION)
           {
             if (options[BATTERY_CALIB_OPTION] > 5)
-              options[BATTERY_CALIB_OPTION]-=5;
+              options[BATTERY_CALIB_OPTION] -= 5;
           }
           else
             options[menuSelection] = !options[menuSelection];
@@ -1015,7 +1083,7 @@ void drawScannerScreen( void ) {
   }
   osd(CMD_SET_X, 0);
   osd(CMD_SET_Y, 12);
-  if ( options[LOW_BAND_OPTION] )
+  if ( options[L_BAND_OPTION] )
     osd_string(" 5.35       5.60       5.95");
   else
     osd_string(" 5.65       5.80       5.95");
@@ -1143,7 +1211,12 @@ void drawOptionsScreen(unsigned char option, unsigned char in_edit_state ) {
       case SHOW_STARTSCREEN_OPTION:  osd_string("show start screen  "); break;
       case INFO_LINE_OPTION:         osd_string("constant info line "); break;
       case INFO_LINE_POS_OPTION:     osd_string("info line position "); break;
-      case LOW_BAND_OPTION:          osd_string("display low band   "); break;
+      case A_BAND_OPTION:            osd_string("boscam a band      "); break;
+      case B_BAND_OPTION:            osd_string("boscam b band      "); break;
+      case E_BAND_OPTION:            osd_string("foxtech/dji band   "); break;
+      case F_BAND_OPTION:            osd_string("fatshark band      "); break;
+      case R_BAND_OPTION:            osd_string("race band          "); break;
+      case L_BAND_OPTION:            osd_string("low band           "); break;
       case RESET_SETTINGS_COMMAND:   osd_string("reset settings     "); break;
       case TEST_ALARM_COMMAND:       osd_string("test alarm         "); break;
       case EXIT_COMMAND:             osd_string("exit               "); break;
@@ -1162,11 +1235,16 @@ void drawOptionsScreen(unsigned char option, unsigned char in_edit_state ) {
         case BATTERY_ALARM_OPTION:    osd_string(options[j] ? "yes    " : "no     "); break;
         case ALARM_LEVEL_OPTION:      osd_int(options[j]); osd_string("      "); break;
         case BATTERY_TYPE_OPTION:     osd_string(options[j] ? "2s lipo" : "3s lipo"); break;
-        case BATTERY_CALIB_OPTION:    osd_int(voltage/10); osd_string("."); osd_int(voltage%10);  osd_string("   ");break;
+        case BATTERY_CALIB_OPTION:    osd_int(voltage / 10); osd_string("."); osd_int(voltage % 10);  osd_string("   "); break;
         case SHOW_STARTSCREEN_OPTION: osd_string(options[j] ? "yes    " : "no     "); break;
         case INFO_LINE_OPTION:        osd_string(options[j] ? "yes    " : "no     "); break;
         case INFO_LINE_POS_OPTION:    osd_string(options[j] ? "left   " : "right  "); break;
-        case LOW_BAND_OPTION:         osd_string(options[j] ? "yes    " : "no     "); break;
+        case A_BAND_OPTION:           osd_string(options[j] ? "on     " : "off    "); break;
+        case B_BAND_OPTION:           osd_string(options[j] ? "on     " : "off    "); break;
+        case E_BAND_OPTION:           osd_string(options[j] ? "on     " : "off    "); break;
+        case F_BAND_OPTION:           osd_string(options[j] ? "on     " : "off    "); break;
+        case R_BAND_OPTION:           osd_string(options[j] ? "on     " : "off    "); break;
+        case L_BAND_OPTION:           osd_string(options[j] ? "on     " : "off    "); break;
       }
     }
     else
