@@ -38,6 +38,7 @@
 #include <avr/pgmspace.h>
 #include <string.h>
 #include <EEPROM.h>
+#include <EnableInterrupt.h>
 
 /*******************************************************************************
   Minimosd Display Protocol Definition v1.0
@@ -105,6 +106,7 @@ unsigned int  autoScan( unsigned int frequency );
 unsigned int  averageAnalogRead( unsigned char pin );
 void          batteryMeter(unsigned char x, unsigned char y, bool showNumbers = false);
 unsigned char bestChannelMatch( unsigned int frequency );
+void          buttonPressInterrupt();
 void          drawAutoScanScreen(void);
 void          drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value, bool showNumbers = false );
 void          drawChannelScreen( unsigned char channel);
@@ -183,9 +185,11 @@ unsigned int getReversePosition( unsigned char position ) {
 //******************************************************************************
 //* Other file scope variables
 unsigned char lastClick = NO_CLICK;
+unsigned char clickType = NO_CLICK;
 unsigned char currentChannel = 0;
 unsigned char lastChannel = 0;
 unsigned char ledState = LED_ON;
+unsigned long pauseStart = 0;
 unsigned long displayUpdateTimer = 0;
 unsigned long eepromSaveTimer = 0;
 unsigned long forceDisplayTimer = 0;
@@ -200,6 +204,9 @@ unsigned char screenCleaning = 0;
 rtc6715 receiver( SPI_CLOCK_PIN, SLAVE_SELECT_PIN, SPI_DATA_PIN );
 unsigned char softPositions[48];
 
+
+
+
 //******************************************************************************
 //* function: setup
 //******************************************************************************
@@ -212,8 +219,8 @@ void setup()
   digitalWrite(LED_PIN, LED_ON);
 
   // initialize button pin
-  pinMode(BUTTON_PIN, INPUT);
-  digitalWrite(BUTTON_PIN, INPUT_PULLUP);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  enableInterrupt(BUTTON_PIN, buttonPressInterrupt, CHANGE);
 
   // initialize alarm
   pinMode(ALARM_PIN, OUTPUT );
@@ -434,50 +441,55 @@ bool readEeprom(void) {
 }
 
 //******************************************************************************
-//* function: get_click_type
-//*         : Polls the specified pin and returns the type of click that was
-//*         : performed NO_CLICK, SINGLE_CLICK, DOUBLE_CLICK, LONG_CLICK,
-//*         : LONG_LONG_CLICK or WAKEUP_CLICK
+//* function: buttonPressInterrupt
 //******************************************************************************
-unsigned char getClickType(unsigned char buttonPin) {
-  unsigned int timer = 0;
-  unsigned char click_type = NO_CLICK;
+void buttonPressInterrupt() {
+  static long clickStart = 0;
 
-  // check if the key has been pressed
-  if (digitalRead(buttonPin) == !BUTTON_PRESSED)
-    return ( NO_CLICK );
-
-  while (digitalRead(buttonPin) == BUTTON_PRESSED) {
-    timer++;
-    delay(5);
+  if ( digitalRead(BUTTON_PIN) == BUTTON_PRESSED ) {// Button was pressed
+    clickStart = millis();
   }
-  if (timer < 120)                  // 120 * 5 ms = 0.6s
-    click_type = SINGLE_CLICK;
-  if (timer >= 80 && timer < 300 )  // 300 * 5 ms = 1.5s
-    click_type = LONG_CLICK;
-  if (timer >= 300)
-    click_type = LONG_LONG_CLICK;
-
-  // If the screen saver is active a short key press is just a wakeup call
-  if (saveScreenActive) {
-    saveScreenActive = 0;
-    if ( click_type == SINGLE_CLICK )
-      return ( WAKEUP_CLICK );
+  else {   // Button was released
+    if ( pauseStart) {
+      clickType = DOUBLE_CLICK;
+      clickStart = 0;
+      pauseStart = 0;
+    }
+    else
+    {
+      if ( saveScreenActive ) {
+        clickType = WAKEUP_CLICK;
+        clickStart = 0;
+        saveScreenActive = 0;
+      }
+      else if (( millis() - clickStart) > 1500 )
+        clickType = LONG_LONG_CLICK;
+      else if (( millis() - clickStart) > 350 )
+        clickType = LONG_CLICK;
+      else
+        clickType = SINGLE_CLICK;
+      clickStart = 0;
+      pauseStart = millis();
+    }
   }
+}
 
-  // Check if there is a second click
-  timer = 0;
-  while ((digitalRead(buttonPin) == !BUTTON_PRESSED) && (timer++ < 40)) {
-    delay(5);
-  }
-  if (timer >= 40)                  // 40 * 5 ms = 0.2s
-    return click_type;
+//******************************************************************************
+//* function: getClickType
+//******************************************************************************
+uint8_t getClickType(uint8_t buttonPin) {
+  uint8_t tempClickType = NO_CLICK;
 
-  if (digitalRead(buttonPin) == BUTTON_PRESSED ) {
-    click_type = DOUBLE_CLICK;
-    while (digitalRead(buttonPin) == BUTTON_PRESSED) ;
+  if (pauseStart && (millis() - pauseStart) < 350)
+    return NO_CLICK;
+
+  pauseStart = 0;
+
+  if ( clickType ) {
+    tempClickType = clickType;
+    clickType = NO_CLICK;
   }
-  return (click_type);
+  return tempClickType;
 }
 
 //******************************************************************************
@@ -683,7 +695,7 @@ char *shortNameOfChannel(unsigned char channel, char *name)
   else if (channelIndex < 32)
     name[0] = 'f';
   else if (channelIndex < 40)
-    name[0] = 'r';
+    name[0] = 'c';
   else
     name[0] = 'l';
   name[1] = (channelIndex % 8) + '0' + 1;
