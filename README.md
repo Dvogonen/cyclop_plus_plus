@@ -1,10 +1,10 @@
-#CYCLOP++ - v2.2
+#CYCLOP++ - v2.3
 The Quanum Cyclops googles are limited to only the most basic functionality.
 The limitation is however not dependent on the electronic hardware, which is quite powerful.
 By replacing the firmware of the receiver board and adding an inexpensive MinimOSD module, the googles become fully featured. 
 
 ####Added Functions
-* FPV channels can be manually selected.
+* One or several favourite frequency bands can be selected. Only the frequencies on the favourite bands are used when the user manually steps through the frequencies. 
 * There is full 48 channel support. Both for the complete race band and the new low band.
 * The complete frequency range can be scanned for signal strength in order to find unused channels.
 * The googles can automatically scan through all channels and let you pick which one to view.
@@ -33,7 +33,7 @@ The bottom right pin is VCC. That is the one below the hole with the square pad.
 
 #### Program the Processor
 The firmware on the MinimOSD must be replaced to make it able to talk to the CYCLOPS board.
-The firmware file is called [minimosd_for_cyclop_v0202.hex](https://raw.githubusercontent.com/Dvogonen/cyclop_plus_plus/master/minimosd_for_cyclop_v0202.hex) (right-click and download).
+The firmware file is called [minimosd_for_cyclop_v0202.hex](https://raw.githubusercontent.com/Dvogonen/cyclop_plus_plus/master/minimosd_for_cyclop_v0203.hex) (right-click and download).
 Check the format of the downloaded file. Each line must start with a colon character and only contain letters and numbers and look something like this:
 :100000000C941F030C9447030C9447030C94470370
 
@@ -112,14 +112,15 @@ It is possible to "Brick" the processors by tampering with the so called process
 There is no need to change any fuses from their original values (0xE2 0xD9 0x07 for the receiver board). Leave them alone.
 
 ##Version History
-* 1.0 (CYCLOP+)Initial dev version, not released
-* 1.1 (CYCLOP+)Functionly complete dev version, not released
-* 1.2 (CYCLOP+)Timing optimizations. First released version. 2016-06-20
-* 1.3 (CYCLOP+)Configration options added. Screensaver mode added. Battery meter added. 2016-07-15
-* 1.4 (CYCLOP+)SH1106 OLED support added. Button timing improved. Low battery alarm added. 2016-08-20
-* 2.0 OLED code removed, MinimOSD code added. Beta1 2016-10-03
-* 2.1 Battery voltage bug solved. First CYCLOP++ stable release. 2016-10-13
+* 2.3 Favourite bands selection added. Button timing improved. WORK IN PROGRESS - NOT YET RELEASED
 * 2.2 LowBand support added. Alarm level configuration added. 2017-03-10
+* 2.1 Battery voltage bug solved. First CYCLOP++ stable release. 2016-10-13
+* 2.0 Branched off from CYCLOP+. OLED code removed, MinimOSD code added. Beta1 2016-10-03
+* 1.4 (CYCLOP+)SH1106 OLED support added. Button timing improved. Low battery alarm added. 2016-08-20
+* 1.3 (CYCLOP+)Configration options added. Screensaver mode added. Battery meter added. 2016-07-15
+* 1.2 (CYCLOP+)Timing optimizations. First released version. 2016-06-20
+* 1.1 (CYCLOP+)Functionly complete dev version, not released
+* 1.0 (CYCLOP+)Initial dev version, not released
 
 ##License
 This project was forked from v1.4 of the CYCLOP+ project. The original project uses an extra OLED screen to display information instead of the google screen.
