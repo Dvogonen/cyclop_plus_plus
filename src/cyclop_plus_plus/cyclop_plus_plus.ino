@@ -1113,19 +1113,19 @@ uint8_t drawFunctionScreen( uint8_t function )
   osd_string(" Exit            ");
 
   osd(CMD_SET_X, XPOS);
-  osd(CMD_SET_Y, YPOS);
+  osd(CMD_SET_Y, YPOS+1);
   function == 1 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
   function == 1 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
   osd_string(" Graphic Scanner ");
 
   osd(CMD_SET_X, XPOS);
-  osd(CMD_SET_Y, YPOS);
+  osd(CMD_SET_Y, YPOS+2);
   function == 2 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
   function == 2 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
   osd_string(" Auto Scanner    ");
 
   osd(CMD_SET_X, XPOS);
-  osd(CMD_SET_Y, YPOS);
+  osd(CMD_SET_Y, YPOS+3);
   function == 3 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
   function == 3 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
   osd_string(" Options         ");
