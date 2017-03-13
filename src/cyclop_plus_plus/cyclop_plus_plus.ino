@@ -301,19 +301,24 @@ void loop()
     case WAKEUP_CLICK: // do nothing
       break;
 
-    case LONG_LONG_CLICK: // graphical band scanner
+    case LONG_CLICK:
+      switch (selectFunction())
+      {
+        case 1:
+          osd( CMD_CLEAR_SCREEN );
+          currentChannel = bestChannelMatch(graphicScanner(getFrequency(currentChannel)));
+          break;
+        case 2:
+          osd( CMD_CLEAR_SCREEN );
+          drawAutoScanScreen();
+          currentChannel = bestChannelMatch(autoScan(getFrequency(currentChannel)));
+          break;
+        case 3:
+          setOptions();
+          writeEeprom();
+          break;
+      }
       osd( CMD_CLEAR_SCREEN );
-      currentChannel = bestChannelMatch(graphicScanner(getFrequency(currentChannel)));
-      osd( CMD_CLEAR_SCREEN );
-      drawChannelScreen(currentChannel);
-      delay(4000);
-      screenCleaning = 1;
-      break;
-
-    case LONG_CLICK:      // auto search
-      osd( CMD_CLEAR_SCREEN );
-      drawAutoScanScreen();
-      currentChannel = bestChannelMatch(autoScan(getFrequency(currentChannel)));
       drawChannelScreen(currentChannel);
       delay(4000);
       screenCleaning = 1;
@@ -462,8 +467,6 @@ void buttonPressInterrupt() {
         clickStart = 0;
         saveScreenActive = 0;
       }
-      else if (( millis() - clickStart) > 1500 )
-        clickType = LONG_LONG_CLICK;
       else if (( millis() - clickStart) > 350 )
         clickType = LONG_CLICK;
       else
@@ -855,7 +858,6 @@ void setOptions()
           break;
 
         case LONG_CLICK:     // stop editing
-        case LONG_LONG_CLICK:
           in_edit_state = 0;
       }
     else
@@ -878,7 +880,6 @@ void setOptions()
           break;
 
         case LONG_CLICK:     // Execute command or toggle option
-        case LONG_LONG_CLICK:
           if (menuSelection == EXIT_COMMAND)
             exitNow = true;
           else if (menuSelection == RESET_SETTINGS_COMMAND)
@@ -923,6 +924,26 @@ void testAlarm( void ) {
     delay(ALARM_MAX_OFF);
   }
   analogWrite( ALARM_PIN, 0 );
+}
+
+//******************************************************************************
+//* function: selectFunction
+//******************************************************************************
+uint8_t selectFunction(void)
+{
+  uint8_t function = 0;
+  uint8_t lastClick = NO_CLICK;
+  do
+  {
+    drawFunctionScreen( function );
+    lastClick = getClickType( BUTTON_PIN );
+    if (lastClick == SINGLE_CLICK)
+      function == 3 ? function = 0 : function++;
+    if (lastClick == DOUBLE_CLICK)
+      function == 0 ? function = 3 : function--;
+  }
+  while ( lastClick != LONG_CLICK );
+  return ( function );
 }
 
 //******************************************************************************
@@ -974,6 +995,8 @@ void osd_string( const char *str )
   while (Serial.availableForWrite() < strlen(str)) ;
   Serial.write(str);
 }
+
+
 
 //******************************************************************************
 //* function: drawLogo
@@ -1074,6 +1097,38 @@ void drawChannelScreen( unsigned char channel) {
 
   osd( CMD_DISABLE_INVERSE );
   osd( CMD_DISABLE_FILL );
+}
+
+//******************************************************************************
+//* function: drawFunctionScreen
+//******************************************************************************
+#define XPOS  5
+#define YPOS  4
+uint8_t drawFunctionScreen( uint8_t function )
+{
+  osd(CMD_SET_X, XPOS);
+  osd(CMD_SET_Y, YPOS);
+  function == 0 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
+  function == 0 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
+  osd_string(" Exit            ");
+
+  osd(CMD_SET_X, XPOS);
+  osd(CMD_SET_Y, YPOS);
+  function == 1 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
+  function == 1 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
+  osd_string(" Graphic Scanner ");
+
+  osd(CMD_SET_X, XPOS);
+  osd(CMD_SET_Y, YPOS);
+  function == 2 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
+  function == 2 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
+  osd_string(" Auto Scanner    ");
+
+  osd(CMD_SET_X, XPOS);
+  osd(CMD_SET_Y, YPOS);
+  function == 3 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
+  function == 3 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
+  osd_string(" Options         ");
 }
 
 //******************************************************************************

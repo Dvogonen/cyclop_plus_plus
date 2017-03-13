@@ -91,18 +91,19 @@ I recommend mounting the minimOSD with double sided mounting tape on top of the 
 Here are a few images of the intermediate build steps:
 [Soldering](SOLDERING.md)
 
-##Configure CYCLOP++
-- Hold down the button during power up to enter the system options screen.
-- Use single click and double click to navigate in the menu.
-- Use long click to select or unselect an option.
-- Examples of configurable options: Battery type (2s LiPo, 3s LiPo), information at top or bottom row, video format.
-- The settings are saved when the Exit option is selected. All changes are lost if the battery is disconnected before Exit has been selected.
-
 ##Use CYCLOP++
-- A single click jumps up in frequency to the closest channel among the 40 available.
-- A double click jumps down in frequency
-- A long click (0.6 - 2 seconds) triggers a autoscan for the best channel, just like a single click does in the original firmware.
-- A long-long click (> 2 seconds) triggers a manual frequency scanner. The receiver will start cycling through all channels quickly. Hold down the button again when the channel you want to use flickers onto the main display.
+- A single click jumps up in frequency to the closest higher channel among the 48 available.
+- A double click jumps down in frequency.
+- A long click (longer than 0.5 seconds) brings up a menu.
+- In menues: A short click increments or moves forward. A double click decrements or moves backward. A long click executes functions or is used to enter/depart.
+- Use the menu to start the Graphical Scanner, the Auto Scanner or enter into the Options Menu.  
+- Auto Scanner: Performs an autoscan for the best channel, just like a single click does in the original firmware.
+- Graphical Scanner: Triggers a manual frequency scanner. The receiver will start cycling through all channels quickly. Click the button again to select a frequency.
+
+##Options Menu
+- Examples of configurable options: Battery type, screen saver, low level battery alarm, alarm sound level, information display characteristics.
+- It is possible to turn the use of individual bands On or Off. If a band is turned Off it will not be available for manual stepping. The idea is to be able to limit frequency stepping to the band you are using and ignore all other frequencies. All frequencies are however available for both Grahical Scanning and Auto Scanning. The exception to this rule is the Low Band. This band takes up as much bandwidth as all the others combined. If the Low Band is turned Off, the scan functions for it is also turned Off. The reason is that this doubles the resolution of frequency scans. 
+- The settings are saved when the Exit option is selected. All changes are lost if the battery is disconnected before Exit has been selected.
 
 ##Words of Warning
 Use of the FW is naturally on your own risk.
