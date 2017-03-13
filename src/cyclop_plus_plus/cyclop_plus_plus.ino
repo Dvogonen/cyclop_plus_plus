@@ -109,7 +109,6 @@ unsigned char bestChannelMatch( unsigned int frequency );
 void          buttonPressInterrupt();
 void          drawAutoScanScreen(void);
 void          drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value, bool showNumbers = false );
-void          drawChannelScreen( unsigned char channel);
 void          drawLeftInfoLine( void );
 void          drawLogo( unsigned char xPos, unsigned char yPos);
 void          drawOptionsScreen(unsigned char option, unsigned char in_edit_state );
@@ -131,6 +130,7 @@ bool          readEeprom(void);
 void          resetOptions(void);
 char         *shortNameOfChannel(unsigned char channel, char *name);
 void          setOptions( void );
+void          updateScannerScreen(unsigned char position, unsigned char value1, unsigned char value2 );
 
 //******************************************************************************
 //* Positions in the frequency table for the 48 channels
@@ -204,9 +204,6 @@ unsigned char screenCleaning = 0;
 rtc6715 receiver( SPI_CLOCK_PIN, SLAVE_SELECT_PIN, SPI_DATA_PIN );
 unsigned char softPositions[48];
 
-
-
-
 //******************************************************************************
 //* function: setup
 //******************************************************************************
@@ -255,35 +252,6 @@ void setup()
   }
   osd( CMD_CLEAR_SCREEN );
 
-  // Mark blocked channels in the softPositions array
-  for (i = 0; i < 48; i++)
-    softPositions[i] = positions[i];
-
-  if (!options[A_BAND_OPTION]) {
-    for (i = 0; i < 8; i++)
-      softPositions[getReversePosition( i )] = 255;
-  }
-  if (!options[B_BAND_OPTION]) {
-    for (i = 8; i < 16; i++)
-      softPositions[getReversePosition( i )] = 255;
-  }
-  if (!options[E_BAND_OPTION]) {
-    for (i = 16; i < 24; i++)
-      softPositions[getReversePosition( i )] = 255;
-  }
-  if (!options[F_BAND_OPTION]) {
-    for (i = 24; i < 32; i++)
-      softPositions[getReversePosition( i )] = 255;
-  }
-  if (!options[R_BAND_OPTION]) {
-    for (i = 32; i < 40; i++)
-      softPositions[getReversePosition( i )] = 255;
-  }
-  if (!options[L_BAND_OPTION]) {
-    for (i = 40; i < 48; i++)
-      softPositions[getReversePosition( i )] = 255;
-  }
-
   // Set delay time before entering screen save mode
   forceDisplayTimer = millis() + FORCED_SCREEN_UPDATE_MS;
 }
@@ -314,13 +282,11 @@ void loop()
           currentChannel = bestChannelMatch(autoScan(getFrequency(currentChannel)));
           break;
         case 3:
+          osd( CMD_CLEAR_SCREEN );
           setOptions();
           writeEeprom();
           break;
       }
-      osd( CMD_CLEAR_SCREEN );
-      drawChannelScreen(currentChannel);
-      delay(4000);
       screenCleaning = 1;
       break;
 
@@ -397,26 +363,6 @@ void loop()
   }
   else
     analogWrite( ALARM_PIN, 0 );
-}
-
-//******************************************************************************
-//* function: resetOptions
-//*         : Resets all configuration settings to their default values
-//******************************************************************************
-void resetOptions(void) {
-  options[BATTERY_ALARM_OPTION]    = BATTERY_ALARM_DEFAULT;
-  options[ALARM_LEVEL_OPTION]      = ALARM_LEVEL_DEFAULT;
-  options[BATTERY_TYPE_OPTION]     = BATTERY_TYPE_DEFAULT;
-  options[BATTERY_CALIB_OPTION]    = BATTERY_CALIB_DEFAULT;
-  options[SHOW_STARTSCREEN_OPTION] = SHOW_STARTSCREEN_DEFAULT;
-  options[INFO_LINE_OPTION]        = INFO_LINE_DEFAULT;
-  options[INFO_LINE_POS_OPTION]    = INFO_LINE_POS_DEFAULT;
-  options[A_BAND_OPTION]           = A_BAND_DEFAULT;
-  options[B_BAND_OPTION]           = B_BAND_DEFAULT;
-  options[E_BAND_OPTION]           = E_BAND_DEFAULT;
-  options[F_BAND_OPTION]           = F_BAND_DEFAULT;
-  options[R_BAND_OPTION]           = R_BAND_DEFAULT;
-  options[L_BAND_OPTION]           = L_BAND_DEFAULT;
 }
 
 //******************************************************************************
@@ -580,7 +526,7 @@ unsigned int graphicScanner( unsigned int frequency ) {
   osd(CMD_DISABLE_VIDEO);
 
   // Cycle through the band
-  while ((clickType = getClickType(BUTTON_PIN)) == NO_CLICK) {
+  while (digitalRead(BUTTON_PIN) != BUTTON_PRESSED) {
     for (i = 0; i < 2; i++) {
       scanFrequency += SCANNING_STEP;
       if (scanFrequency > FREQUENCY_MAX)
@@ -596,8 +542,8 @@ unsigned int graphicScanner( unsigned int frequency ) {
     updateScannerScreen(29 - ((FREQUENCY_MAX - scanFrequency) / FREQUENCY_DIVIDER), rssiDisplayValue1, rssiDisplayValue2 );
   }
   // Fine tuning
-  scanFrequency = scanFrequency - 20;
-  for (i = 0; i < 20; i++, scanFrequency += 2) {
+  scanFrequency = scanFrequency - SCANNING_STEP*4;
+  for (i = 0; i < SCANNING_STEP*4; i++, scanFrequency += 2) {
     receiver.setFrequency(scanFrequency);
     delay( RSSI_STABILITY_DELAY_MS );
     scanRssi = averageAnalogRead(RSSI_PIN);
@@ -648,9 +594,9 @@ unsigned int autoScan( unsigned int frequency ) {
     }
   }
   // Fine tuning
-  scanFrequency = bestFrequency - 20;
+  scanFrequency = bestFrequency - SCANNING_STEP*4;
   bestRssi = 0;
-  for (i = 0; i < 20; i++, scanFrequency += 2) {
+  for (i = 0; i < SCANNING_STEP*4; i++, scanFrequency += 2) {
     receiver.setFrequency(scanFrequency);
     delay( RSSI_STABILITY_DELAY_MS );
     scanRssi = averageAnalogRead(RSSI_PIN);
@@ -731,8 +677,6 @@ char *longNameOfChannel(unsigned char channel, char *name)
   return name;
 }
 
-
-
 //******************************************************************************
 //* function: getVoltage
 //*         : returns battery voltage as an unsigned integer.
@@ -798,6 +742,64 @@ void batteryMeter( unsigned char x, unsigned char y, bool showNumbers )
     alarmOffPeriod = 0;
   }
   drawBattery(x, y, value, showNumbers);
+}
+
+//******************************************************************************
+//* function: updateSoftPositions
+//******************************************************************************
+void updateSoftPositions( void ) {
+  unsigned char i;
+
+  // Mark blocked channels in the softPositions array
+  for (i = 0; i < 48; i++)
+    softPositions[i] = positions[i];
+
+  if (!options[A_BAND_OPTION]) {
+    for (i = 0; i < 8; i++)
+      softPositions[getReversePosition( i )] = 255;
+  }
+  if (!options[B_BAND_OPTION]) {
+    for (i = 8; i < 16; i++)
+      softPositions[getReversePosition( i )] = 255;
+  }
+  if (!options[E_BAND_OPTION]) {
+    for (i = 16; i < 24; i++)
+      softPositions[getReversePosition( i )] = 255;
+  }
+  if (!options[F_BAND_OPTION]) {
+    for (i = 24; i < 32; i++)
+      softPositions[getReversePosition( i )] = 255;
+  }
+  if (!options[R_BAND_OPTION]) {
+    for (i = 32; i < 40; i++)
+      softPositions[getReversePosition( i )] = 255;
+  }
+  if (!options[L_BAND_OPTION]) {
+    for (i = 40; i < 48; i++)
+      softPositions[getReversePosition( i )] = 255;
+  }
+}
+
+//******************************************************************************
+//* function: resetOptions
+//*         : Resets all configuration settings to their default values
+//******************************************************************************
+void resetOptions(void) {
+  options[BATTERY_ALARM_OPTION]    = BATTERY_ALARM_DEFAULT;
+  options[ALARM_LEVEL_OPTION]      = ALARM_LEVEL_DEFAULT;
+  options[BATTERY_TYPE_OPTION]     = BATTERY_TYPE_DEFAULT;
+  options[BATTERY_CALIB_OPTION]    = BATTERY_CALIB_DEFAULT;
+  options[SHOW_STARTSCREEN_OPTION] = SHOW_STARTSCREEN_DEFAULT;
+  options[INFO_LINE_OPTION]        = INFO_LINE_DEFAULT;
+  options[INFO_LINE_POS_OPTION]    = INFO_LINE_POS_DEFAULT;
+  options[A_BAND_OPTION]           = A_BAND_DEFAULT;
+  options[B_BAND_OPTION]           = B_BAND_DEFAULT;
+  options[E_BAND_OPTION]           = E_BAND_DEFAULT;
+  options[F_BAND_OPTION]           = F_BAND_DEFAULT;
+  options[R_BAND_OPTION]           = R_BAND_DEFAULT;
+  options[L_BAND_OPTION]           = L_BAND_DEFAULT;
+
+  updateSoftPositions();
 }
 
 //******************************************************************************
@@ -896,6 +898,7 @@ void setOptions()
       drawOptionsScreen( menuSelection, in_edit_state );
     }
   }
+  updateSoftPositions();
 }
 
 //******************************************************************************
@@ -905,25 +908,14 @@ void setOptions()
 void testAlarm( void ) {
   unsigned char i;
 
-  for ( i = 0; i < 3; i++) {
-    analogWrite( ALARM_PIN, 1 << options[ALARM_LEVEL_OPTION] );
-    delay(ALARM_MIN_ON);
-    analogWrite( ALARM_PIN, 0 );
-    delay(ALARM_MIN_OFF);
+  while (getClickType(BUTTON_PIN) == NO_CLICK) {
+    for (i = 0; i < 3; i++) {
+      analogWrite( ALARM_PIN, 1 << options[ALARM_LEVEL_OPTION] );
+      delay(ALARM_MAX_ON);
+      analogWrite( ALARM_PIN, 0 );
+      delay(ALARM_MAX_OFF);
+    }
   }
-  for (i = 0; i < 3; i++) {
-    analogWrite( ALARM_PIN, 1 << options[ALARM_LEVEL_OPTION] );
-    delay(ALARM_MED_ON);
-    analogWrite( ALARM_PIN, 0 );
-    delay(ALARM_MED_OFF);
-  }
-  for (i = 0; i < 3; i++) {
-    analogWrite( ALARM_PIN, 1 << options[ALARM_LEVEL_OPTION] );
-    delay(ALARM_MAX_ON);
-    analogWrite( ALARM_PIN, 0 );
-    delay(ALARM_MAX_OFF);
-  }
-  analogWrite( ALARM_PIN, 0 );
 }
 
 //******************************************************************************
@@ -1055,10 +1047,44 @@ void drawStartScreen( void ) {
 }
 
 //******************************************************************************
-//* function: drawChannelScreen
-//*         : draws the standard screen with channel information
+//* function: drawFunctionScreen
 //******************************************************************************
-void drawChannelScreen( unsigned char channel) {
+#define XPOS  5
+#define YPOS  4
+uint8_t drawFunctionScreen( uint8_t function )
+{
+  drawLogo(1, 0);
+  batteryMeter(25, 0);
+
+  osd(CMD_SET_X, XPOS);
+  osd(CMD_SET_Y, YPOS);
+  function == 0 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
+  function == 0 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
+  osd_string(" Exit            ");
+
+  osd(CMD_SET_X, XPOS);
+  osd(CMD_SET_Y, YPOS + 1);
+  function == 1 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
+  function == 1 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
+  osd_string(" Graphic Scanner ");
+
+  osd(CMD_SET_X, XPOS);
+  osd(CMD_SET_Y, YPOS + 2);
+  function == 2 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
+  function == 2 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
+  osd_string(" Auto Scanner    ");
+
+  osd(CMD_SET_X, XPOS);
+  osd(CMD_SET_Y, YPOS + 3);
+  function == 3 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
+  function == 3 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
+  osd_string(" Options         ");
+}
+
+//******************************************************************************
+//* function: drawAutoScanScreen
+//******************************************************************************
+void drawAutoScanScreen( void ) {
   char buffer[22];
   unsigned char answer;
 
@@ -1069,74 +1095,11 @@ void drawChannelScreen( unsigned char channel) {
   osd( CMD_ENABLE_INVERSE );
 
   osd( CMD_SET_X, 1 );
-  osd( CMD_SET_Y, 3 );
-  osd_string("                         ");
-
-  osd( CMD_SET_X, 1 );
-  osd( CMD_SET_Y, 4 );
-  osd_string(" Frequency:              ");
-  osd( CMD_SET_X, 13 );
-  osd_int(getFrequency(channel));
-  osd_string( " MHz" );
-
-  osd( CMD_SET_X, 1 );
   osd( CMD_SET_Y, 5 );
-  osd_string(" Channel  :              ");
-  osd( CMD_SET_X, 13 );
-  osd_string(shortNameOfChannel(channel, buffer));
-
-  osd( CMD_SET_X, 1 );
-  osd( CMD_SET_Y, 6 );
-  osd_string(" Name     :              ");
-  osd( CMD_SET_X, 13 );
-  osd_string( longNameOfChannel(channel, buffer));
-
-  osd( CMD_SET_X, 1 );
-  osd( CMD_SET_Y, 7 );
-  osd_string("                         ");
+  osd_string("      Auto Scanning      ");
 
   osd( CMD_DISABLE_INVERSE );
   osd( CMD_DISABLE_FILL );
-}
-
-//******************************************************************************
-//* function: drawFunctionScreen
-//******************************************************************************
-#define XPOS  5
-#define YPOS  4
-uint8_t drawFunctionScreen( uint8_t function )
-{
-  osd(CMD_SET_X, XPOS);
-  osd(CMD_SET_Y, YPOS);
-  function == 0 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
-  function == 0 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
-  osd_string(" Exit            ");
-
-  osd(CMD_SET_X, XPOS);
-  osd(CMD_SET_Y, YPOS+1);
-  function == 1 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
-  function == 1 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
-  osd_string(" Graphic Scanner ");
-
-  osd(CMD_SET_X, XPOS);
-  osd(CMD_SET_Y, YPOS+2);
-  function == 2 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
-  function == 2 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
-  osd_string(" Auto Scanner    ");
-
-  osd(CMD_SET_X, XPOS);
-  osd(CMD_SET_Y, YPOS+3);
-  function == 3 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
-  function == 3 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
-  osd_string(" Options         ");
-}
-
-//******************************************************************************
-//* function: drawAutoScanScreen
-//******************************************************************************
-void drawAutoScanScreen( void ) {
-  drawLogo(1, 0);
-  batteryMeter(25, 0);
 }
 
 //******************************************************************************
@@ -1272,7 +1235,7 @@ void drawOptionsScreen(unsigned char option, unsigned char in_edit_state ) {
     }
     switch (j) {
       case BATTERY_ALARM_OPTION:     osd_string("battery alarm      "); break;
-      case ALARM_LEVEL_OPTION:       osd_string("alarm level        "); break;
+      case ALARM_LEVEL_OPTION:       osd_string("alarm sound level  "); break;
       case BATTERY_TYPE_OPTION:      osd_string("battery type       "); break;
       case BATTERY_CALIB_OPTION:     osd_string("volt calibration   "); break;
       case SHOW_STARTSCREEN_OPTION:  osd_string("show start screen  "); break;
@@ -1300,7 +1263,7 @@ void drawOptionsScreen(unsigned char option, unsigned char in_edit_state ) {
     if (j < MAX_OPTIONS) {
       switch (j) {
         case BATTERY_ALARM_OPTION:    osd_string(options[j] ? "yes    " : "no     "); break;
-        case ALARM_LEVEL_OPTION:      osd_int(options[j]); osd_string("      "); break;
+        case ALARM_LEVEL_OPTION:      osd_int(options[j]);      osd_string("      "); break;
         case BATTERY_TYPE_OPTION:     osd_string(options[j] ? "2s lipo" : "3s lipo"); break;
         case BATTERY_CALIB_OPTION:    osd_int(voltage / 10); osd_string("."); osd_int(voltage % 10);  osd_string("   "); break;
         case SHOW_STARTSCREEN_OPTION: osd_string(options[j] ? "yes    " : "no     "); break;
