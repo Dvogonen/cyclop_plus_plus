@@ -1,10 +1,10 @@
-#CYCLOP++ - v2.2
+#CYCLOP++ - v2.3
 The Quanum Cyclops googles are limited to only the most basic functionality.
 The limitation is however not dependent on the electronic hardware, which is quite powerful.
 By replacing the firmware of the receiver board and adding an inexpensive MinimOSD module, the googles become fully featured. 
 
 ####Added Functions
-* FPV channels can be manually selected.
+* One or several favourite frequency bands can be selected. Only the frequencies on the favourite bands are used when the user manually steps through the frequencies. 
 * There is full 48 channel support. Both for the complete race band and the new low band.
 * The complete frequency range can be scanned for signal strength in order to find unused channels.
 * The googles can automatically scan through all channels and let you pick which one to view.
@@ -33,7 +33,7 @@ The bottom right pin is VCC. That is the one below the hole with the square pad.
 
 #### Program the Processor
 The firmware on the MinimOSD must be replaced to make it able to talk to the CYCLOPS board.
-The firmware file is called [minimosd_for_cyclop_v0202.hex](https://raw.githubusercontent.com/Dvogonen/cyclop_plus_plus/master/minimosd_for_cyclop_v0202.hex) (right-click and download).
+The firmware file is called [minimosd_for_cyclop_v0202.hex](https://raw.githubusercontent.com/Dvogonen/cyclop_plus_plus/master/minimosd_for_cyclop_v0203.hex) (right-click and download).
 Check the format of the downloaded file. Each line must start with a colon character and only contain letters and numbers and look something like this:
 :100000000C941F030C9447030C9447030C94470370
 
@@ -91,18 +91,19 @@ I recommend mounting the minimOSD with double sided mounting tape on top of the 
 Here are a few images of the intermediate build steps:
 [Soldering](SOLDERING.md)
 
-##Configure CYCLOP++
-- Hold down the button during power up to enter the system options screen.
-- Use single click and double click to navigate in the menu.
-- Use long click to select or unselect an option.
-- Examples of configurable options: Battery type (2s LiPo, 3s LiPo), information at top or bottom row, video format.
-- The settings are saved when the Exit option is selected. All changes are lost if the battery is disconnected before Exit has been selected.
-
 ##Use CYCLOP++
-- A single click jumps up in frequency to the closest channel among the 40 available.
-- A double click jumps down in frequency
-- A long click (0.6 - 2 seconds) triggers a autoscan for the best channel, just like a single click does in the original firmware.
-- A long-long click (> 2 seconds) triggers a manual frequency scanner. The receiver will start cycling through all channels quickly. Hold down the button again when the channel you want to use flickers onto the main display.
+- A single click jumps up in frequency to the closest higher channel among the 48 available.
+- A double click jumps down in frequency.
+- A long click (longer than 0.5 seconds) brings up a menu.
+- In menues: A short click increments or moves forward. A double click decrements or moves backward. A long click executes functions or is used to enter/depart.
+- Use the menu to start the Graphical Scanner, the Auto Scanner or enter into the Options Menu.  
+- Auto Scanner: Performs an autoscan for the best channel, just like a single click does in the original firmware.
+- Graphical Scanner: Triggers a manual frequency scanner. The receiver will start cycling through all channels quickly. Click the button again to select a frequency.
+
+##Options Menu
+- Examples of configurable options: Battery type, screen saver, low level battery alarm, alarm sound level, information display characteristics.
+- It is possible to turn the use of individual bands On or Off. If a band is turned Off it will not be available for manual stepping. The idea is to be able to limit frequency stepping to the band you are using and ignore all other frequencies. All frequencies are however available for both Grahical Scanning and Auto Scanning. The exception to this rule is the Low Band. This band takes up as much bandwidth as all the others combined. If the Low Band is turned Off, the scan functions for it is also turned Off. The reason is that this doubles the resolution of frequency scans. 
+- The settings are saved when the Exit option is selected. All changes are lost if the battery is disconnected before Exit has been selected.
 
 ##Words of Warning
 Use of the FW is naturally on your own risk.
@@ -112,14 +113,15 @@ It is possible to "Brick" the processors by tampering with the so called process
 There is no need to change any fuses from their original values (0xE2 0xD9 0x07 for the receiver board). Leave them alone.
 
 ##Version History
-* 1.0 (CYCLOP+)Initial dev version, not released
-* 1.1 (CYCLOP+)Functionly complete dev version, not released
-* 1.2 (CYCLOP+)Timing optimizations. First released version. 2016-06-20
-* 1.3 (CYCLOP+)Configration options added. Screensaver mode added. Battery meter added. 2016-07-15
-* 1.4 (CYCLOP+)SH1106 OLED support added. Button timing improved. Low battery alarm added. 2016-08-20
-* 2.0 OLED code removed, MinimOSD code added. Beta1 2016-10-03
-* 2.1 Battery voltage bug solved. First CYCLOP++ stable release. 2016-10-13
+* 2.3 Favourite bands selection added. Button timing improved. WORK IN PROGRESS - NOT YET RELEASED
 * 2.2 LowBand support added. Alarm level configuration added. 2017-03-10
+* 2.1 Battery voltage bug solved. First CYCLOP++ stable release. 2016-10-13
+* 2.0 Branched off from CYCLOP+. OLED code removed, MinimOSD code added. Beta1 2016-10-03
+* 1.4 (CYCLOP+)SH1106 OLED support added. Button timing improved. Low battery alarm added. 2016-08-20
+* 1.3 (CYCLOP+)Configration options added. Screensaver mode added. Battery meter added. 2016-07-15
+* 1.2 (CYCLOP+)Timing optimizations. First released version. 2016-06-20
+* 1.1 (CYCLOP+)Functionly complete dev version, not released
+* 1.0 (CYCLOP+)Initial dev version, not released
 
 ##License
 This project was forked from v1.4 of the CYCLOP+ project. The original project uses an extra OLED screen to display information instead of the google screen.

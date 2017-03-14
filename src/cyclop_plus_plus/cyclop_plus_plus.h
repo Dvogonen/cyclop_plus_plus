@@ -41,7 +41,12 @@
 #define SHOW_STARTSCREEN_OPTION   4
 #define INFO_LINE_OPTION          5
 #define INFO_LINE_POS_OPTION      6
-#define LOW_BAND_OPTION           7
+#define A_BAND_OPTION             7
+#define B_BAND_OPTION             8
+#define E_BAND_OPTION             9
+#define F_BAND_OPTION             10
+#define R_BAND_OPTION             11
+#define L_BAND_OPTION             12
 
 #define BATTERY_ALARM_DEFAULT     1   /* On    */
 #define ALARM_LEVEL_DEFAULT       5   /* value 1-8   */
@@ -50,14 +55,19 @@
 #define SHOW_STARTSCREEN_DEFAULT  1   /* Yes   */
 #define INFO_LINE_DEFAULT         1   /* On    */
 #define INFO_LINE_POS_DEFAULT     0   /* Right */
-#define LOW_BAND_DEFAULT          1   /* Yes */
+#define A_BAND_DEFAULT            1   /* On */
+#define B_BAND_DEFAULT            1   /* On */
+#define E_BAND_DEFAULT            1   /* On */
+#define F_BAND_DEFAULT            1   /* On */
+#define R_BAND_DEFAULT            1   /* On */
+#define L_BAND_DEFAULT            1   /* On */
 
-#define MAX_OPTIONS               8
+#define MAX_OPTIONS               13
 
 // User Configuration Commands
-#define TEST_ALARM_COMMAND        8
-#define RESET_SETTINGS_COMMAND    9
-#define EXIT_COMMAND              10
+#define TEST_ALARM_COMMAND        13
+#define RESET_SETTINGS_COMMAND    14
+#define EXIT_COMMAND              15
 #define MAX_COMMANDS              3
 
 // Number of lines in configuration menu
@@ -93,17 +103,17 @@
 #define RSSI_TRESHOLD             250
 
 // Channels in use 
-#define CHANNEL_MIN               (options[LOW_BAND_OPTION] ? 0 : 8)
+#define CHANNEL_MIN               (options[L_BAND_OPTION] ? 0 : 8)
 #define CHANNEL_MAX               47
 
 // Max and Min frequencies
-#define FREQUENCY_MIN             (options[LOW_BAND_OPTION] ? 5345 : 5645)
+#define FREQUENCY_MIN             (options[L_BAND_OPTION] ? 5345 : 5645)
 #define FREQUENCY_MAX             5945
 
 //******************************************************************************
 //* Frequency resolutions
-#define SCANNING_STEP             (options[LOW_BAND_OPTION] ? 10 : 5)
-#define FREQUENCY_DIVIDER         (options[LOW_BAND_OPTION] ? 20 : 10)
+#define SCANNING_STEP             (options[L_BAND_OPTION] ? 10 : 5)
+#define FREQUENCY_DIVIDER         (options[L_BAND_OPTION] ? 20 : 10)
 
 //EEPROM addresses
 #define EEPROM_CHANNEL            0
@@ -115,8 +125,7 @@
 #define SINGLE_CLICK              1
 #define DOUBLE_CLICK              2
 #define LONG_CLICK                3
-#define LONG_LONG_CLICK           4
-#define WAKEUP_CLICK              5
+#define WAKEUP_CLICK              4
 
 // Button pins go low or high on button clicks
 #define BUTTON_PRESSED            LOW
@@ -126,7 +135,8 @@
 #define LED_ON                    HIGH
 
 // Release information
-#define VER_DATE_STRING           "2017-03-10"
-#define VER_INFO_STRING           "v2.2 by Dvogonen"
+#define VER_DATE_STRING           "2017-03-13"
+#define VER_INFO_STRING           "v2.3 by Dvogonen"
+#define VER_EEPROM                240
 
 #endif // cyclop_plus_osd_h

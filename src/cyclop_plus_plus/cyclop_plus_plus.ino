@@ -32,11 +32,13 @@
 ********************************************************************************/
 // Application includes
 #include "cyclop_plus_plus.h"
+#include "rtc6715.h"
 
 // Library includes
 #include <avr/pgmspace.h>
 #include <string.h>
 #include <EEPROM.h>
+#include <EnableInterrupt.h>
 
 /*******************************************************************************
   Minimosd Display Protocol Definition v1.0
@@ -104,9 +106,9 @@ unsigned int  autoScan( unsigned int frequency );
 unsigned int  averageAnalogRead( unsigned char pin );
 void          batteryMeter(unsigned char x, unsigned char y, bool showNumbers = false);
 unsigned char bestChannelMatch( unsigned int frequency );
+void          buttonPressInterrupt();
 void          drawAutoScanScreen(void);
 void          drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value, bool showNumbers = false );
-void          drawChannelScreen( unsigned char channel);
 void          drawLeftInfoLine( void );
 void          drawLogo( unsigned char xPos, unsigned char yPos);
 void          drawOptionsScreen(unsigned char option, unsigned char in_edit_state );
@@ -127,8 +129,8 @@ unsigned char previousChannel( unsigned char channel);
 bool          readEeprom(void);
 void          resetOptions(void);
 char         *shortNameOfChannel(unsigned char channel, char *name);
-void          setRTC6715Frequency(unsigned int frequency);
 void          setOptions( void );
+void          updateScannerScreen(unsigned char position, unsigned char value1, unsigned char value2 );
 
 //******************************************************************************
 //* Positions in the frequency table for the 48 channels
@@ -155,20 +157,39 @@ const unsigned int channelFrequencies[] PROGMEM = {
   5733, 5752, 5771, 5790, 5809, 5828, 5847, 5866, // Band B - Boscam B
   5705, 5685, 5665, 5645, 5885, 5905, 5925, 5945, // Band E - DJI
   5740, 5760, 5780, 5800, 5820, 5840, 5860, 5880, // Band F - FatShark \ Immersion
-  5658, 5695, 5732, 5769, 5806, 5843, 5880, 5917, // Band C - Raceband
+  5658, 5695, 5732, 5769, 5806, 5843, 5880, 5917, // Band R - Raceband
   5362, 5399, 5436, 5473, 5510, 5547, 5584, 5621  // Band L - Lowband
 };
 
 unsigned int getFrequency( unsigned char channel ) {
   return pgm_read_word_near(channelFrequencies + getPosition(channel));
 }
+//******************************************************************************
+//* Reverse lookup for frequencies in position table
+//* Direct access via array operations does not work since data is stored in
+//* flash, not in RAM. Use getRevesePositions to retrieve data
+
+const unsigned int reversePositions[] PROGMEM = {
+  39, 36, 32, 28, 25, 21, 18, 14, // Band A - Boscam A
+  16, 19, 23, 26, 30, 33, 37, 40, // Band B - Boscam B
+  13, 11, 10,  8, 43, 44, 46, 47, // Band E - DJI
+  17, 20, 24, 27, 31, 34, 38, 41, // Band F - FatShark \ Immersion
+  9,  12, 15, 22, 29, 35, 42, 45, // Band R - Raceband
+  0,   1,  2,  3,  4,  5,  6,  7  // Band L - Lowband
+};
+
+unsigned int getReversePosition( unsigned char position ) {
+  return pgm_read_word_near(reversePositions + position);
+}
 
 //******************************************************************************
 //* Other file scope variables
 unsigned char lastClick = NO_CLICK;
+unsigned char clickType = NO_CLICK;
 unsigned char currentChannel = 0;
 unsigned char lastChannel = 0;
 unsigned char ledState = LED_ON;
+unsigned long pauseStart = 0;
 unsigned long displayUpdateTimer = 0;
 unsigned long eepromSaveTimer = 0;
 unsigned long forceDisplayTimer = 0;
@@ -180,6 +201,8 @@ unsigned int  alarmOffPeriod = 0;
 unsigned char options[MAX_OPTIONS];
 unsigned char saveScreenActive = 0;
 unsigned char screenCleaning = 0;
+rtc6715 receiver( SPI_CLOCK_PIN, SLAVE_SELECT_PIN, SPI_DATA_PIN );
+unsigned char softPositions[48];
 
 //******************************************************************************
 //* function: setup
@@ -193,16 +216,11 @@ void setup()
   digitalWrite(LED_PIN, LED_ON);
 
   // initialize button pin
-  pinMode(BUTTON_PIN, INPUT);
-  digitalWrite(BUTTON_PIN, INPUT_PULLUP);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  enableInterrupt(BUTTON_PIN, buttonPressInterrupt, CHANGE);
 
   // initialize alarm
   pinMode(ALARM_PIN, OUTPUT );
-
-  // SPI pins for RX control
-  pinMode (SLAVE_SELECT_PIN, OUTPUT);
-  pinMode (SPI_DATA_PIN, OUTPUT);
-  pinMode (SPI_CLOCK_PIN, OUTPUT);
 
   // Read current channel and options data from EEPROM
   if (!readEeprom()) {
@@ -210,7 +228,7 @@ void setup()
     resetOptions();
   }
   // Start receiver
-  setRTC6715Frequency(getFrequency(currentChannel));
+  receiver.setFrequency(getFrequency(currentChannel));
 
   // Initialize the display
   Serial.begin(57600);
@@ -251,34 +269,37 @@ void loop()
     case WAKEUP_CLICK: // do nothing
       break;
 
-    case LONG_LONG_CLICK: // graphical band scanner
-      osd( CMD_CLEAR_SCREEN );
-      currentChannel = bestChannelMatch(graphicScanner(getFrequency(currentChannel)));
-      osd( CMD_CLEAR_SCREEN );
-      drawChannelScreen(currentChannel);
-      delay(4000);
-      screenCleaning = 1;
-      break;
-
-    case LONG_CLICK:      // auto search
-      osd( CMD_CLEAR_SCREEN );
-      drawAutoScanScreen();
-      currentChannel = bestChannelMatch(autoScan(getFrequency(currentChannel)));
-      drawChannelScreen(currentChannel);
-      delay(4000);
+    case LONG_CLICK:
+      switch (selectFunction())
+      {
+        case 1:
+          osd( CMD_CLEAR_SCREEN );
+          currentChannel = bestChannelMatch(graphicScanner(getFrequency(currentChannel)));
+          break;
+        case 2:
+          osd( CMD_CLEAR_SCREEN );
+          drawAutoScanScreen();
+          currentChannel = bestChannelMatch(autoScan(getFrequency(currentChannel)));
+          break;
+        case 3:
+          osd( CMD_CLEAR_SCREEN );
+          setOptions();
+          writeEeprom();
+          break;
+      }
       screenCleaning = 1;
       break;
 
     case SINGLE_CLICK: // up the frequency
       currentChannel = nextChannel( currentChannel );
-      setRTC6715Frequency(getFrequency(currentChannel));
+      receiver.setFrequency(getFrequency(currentChannel));
       displayUpdateTimer = 0;
       screenCleaning = 1;
       break;
 
     case DOUBLE_CLICK:  // down the frequency
       currentChannel = previousChannel( currentChannel );
-      setRTC6715Frequency(getFrequency(currentChannel));
+      receiver.setFrequency(getFrequency(currentChannel));
       displayUpdateTimer = 0;
       screenCleaning = 1;
       break;
@@ -345,21 +366,6 @@ void loop()
 }
 
 //******************************************************************************
-//* function: resetOptions
-//*         : Resets all configuration settings to their default values
-//******************************************************************************
-void resetOptions(void) {
-  options[BATTERY_ALARM_OPTION]    = BATTERY_ALARM_DEFAULT;
-  options[ALARM_LEVEL_OPTION]      = ALARM_LEVEL_DEFAULT;
-  options[BATTERY_TYPE_OPTION]     = BATTERY_TYPE_DEFAULT;
-  options[BATTERY_CALIB_OPTION]    = BATTERY_CALIB_DEFAULT;
-  options[SHOW_STARTSCREEN_OPTION] = SHOW_STARTSCREEN_DEFAULT;
-  options[INFO_LINE_OPTION]        = INFO_LINE_DEFAULT;
-  options[INFO_LINE_POS_OPTION]    = INFO_LINE_POS_DEFAULT;
-  options[LOW_BAND_OPTION]         = LOW_BAND_DEFAULT;
-}
-
-//******************************************************************************
 //* function: writeEeprom
 //*         : Writes configuration settings to nonvolatile memory
 //******************************************************************************
@@ -368,7 +374,7 @@ void writeEeprom(void) {
   EEPROM.write(EEPROM_CHANNEL, currentChannel);
   for (i = 0; i < MAX_OPTIONS; i++)
     EEPROM.write(EEPROM_OPTIONS + i, options[i]);
-  EEPROM.write(EEPROM_CHECK, 239);
+  EEPROM.write(EEPROM_CHECK, VER_EEPROM);
 }
 
 //******************************************************************************
@@ -377,7 +383,7 @@ void writeEeprom(void) {
 //******************************************************************************
 bool readEeprom(void) {
   unsigned char i;
-  if (EEPROM.read(EEPROM_CHECK) != 239)
+  if (EEPROM.read(EEPROM_CHECK) != VER_EEPROM)
     return false;
   currentChannel =   EEPROM.read(EEPROM_CHANNEL);
   for (i = 0; i < MAX_OPTIONS; i++)
@@ -386,56 +392,59 @@ bool readEeprom(void) {
 }
 
 //******************************************************************************
-//* function: get_click_type
-//*         : Polls the specified pin and returns the type of click that was
-//*         : performed NO_CLICK, SINGLE_CLICK, DOUBLE_CLICK, LONG_CLICK,
-//*         : LONG_LONG_CLICK or WAKEUP_CLICK
+//* function: buttonPressInterrupt
 //******************************************************************************
-unsigned char getClickType(unsigned char buttonPin) {
-  unsigned int timer = 0;
-  unsigned char click_type = NO_CLICK;
+void buttonPressInterrupt() {
+  static long clickStart = 0;
 
-  // check if the key has been pressed
-  if (digitalRead(buttonPin) == !BUTTON_PRESSED)
-    return ( NO_CLICK );
-
-  while (digitalRead(buttonPin) == BUTTON_PRESSED) {
-    timer++;
-    delay(5);
+  if ( digitalRead(BUTTON_PIN) == BUTTON_PRESSED ) {// Button was pressed
+    clickStart = millis();
   }
-  if (timer < 120)                  // 120 * 5 ms = 0.6s
-    click_type = SINGLE_CLICK;
-  if (timer >= 80 && timer < 300 )  // 300 * 5 ms = 1.5s
-    click_type = LONG_CLICK;
-  if (timer >= 300)
-    click_type = LONG_LONG_CLICK;
-
-  // If the screen saver is active a short key press is just a wakeup call
-  if (saveScreenActive) {
-    saveScreenActive = 0;
-    if ( click_type == SINGLE_CLICK )
-      return ( WAKEUP_CLICK );
+  else {   // Button was released
+    if ( pauseStart) {
+      clickType = DOUBLE_CLICK;
+      clickStart = 0;
+      pauseStart = 0;
+    }
+    else
+    {
+      if ( saveScreenActive ) {
+        clickType = WAKEUP_CLICK;
+        clickStart = 0;
+        saveScreenActive = 0;
+      }
+      else if (( millis() - clickStart) > 350 )
+        clickType = LONG_CLICK;
+      else
+        clickType = SINGLE_CLICK;
+      clickStart = 0;
+      pauseStart = millis();
+    }
   }
+}
 
-  // Check if there is a second click
-  timer = 0;
-  while ((digitalRead(buttonPin) == !BUTTON_PRESSED) && (timer++ < 40)) {
-    delay(5);
-  }
-  if (timer >= 40)                  // 40 * 5 ms = 0.2s
-    return click_type;
+//******************************************************************************
+//* function: getClickType
+//******************************************************************************
+uint8_t getClickType(uint8_t buttonPin) {
+  uint8_t tempClickType = NO_CLICK;
 
-  if (digitalRead(buttonPin) == BUTTON_PRESSED ) {
-    click_type = DOUBLE_CLICK;
-    while (digitalRead(buttonPin) == BUTTON_PRESSED) ;
+  if (pauseStart && (millis() - pauseStart) < 350)
+    return NO_CLICK;
+
+  pauseStart = 0;
+
+  if ( clickType ) {
+    tempClickType = clickType;
+    clickType = NO_CLICK;
   }
-  return (click_type);
+  return tempClickType;
 }
 
 //******************************************************************************
 //* function: nextChannel
 //******************************************************************************
-unsigned char nextChannel(unsigned char channel)
+unsigned char incrementChannel(unsigned char channel)
 {
   if (channel > (CHANNEL_MAX - 1))
     return CHANNEL_MIN;
@@ -443,10 +452,18 @@ unsigned char nextChannel(unsigned char channel)
     return channel + 1;
 }
 
+unsigned char nextChannel(unsigned char channel)
+{
+  do {
+    channel = incrementChannel( channel);
+  } while (softPositions[channel] == 255);
+  return channel;
+}
+
 //******************************************************************************
 //* function: previousChannel
 //******************************************************************************
-unsigned char previousChannel(unsigned char channel)
+unsigned char decrementChannel(unsigned char channel)
 {
   if (channel > CHANNEL_MAX)
     return CHANNEL_MAX;
@@ -455,6 +472,14 @@ unsigned char previousChannel(unsigned char channel)
     return CHANNEL_MAX;
 
   return channel - 1;
+}
+
+unsigned char previousChannel(unsigned char channel)
+{
+  do {
+    channel = decrementChannel( channel );
+  } while (softPositions[channel] == 255);
+  return channel;
 }
 
 //******************************************************************************
@@ -500,13 +525,13 @@ unsigned int graphicScanner( unsigned int frequency ) {
   // Disable video
   osd(CMD_DISABLE_VIDEO);
 
-  // Cycle through the band in 10MHz steps
-  while ((clickType = getClickType(BUTTON_PIN)) == NO_CLICK) {
+  // Cycle through the band
+  while (digitalRead(BUTTON_PIN) != BUTTON_PRESSED) {
     for (i = 0; i < 2; i++) {
       scanFrequency += SCANNING_STEP;
       if (scanFrequency > FREQUENCY_MAX)
         scanFrequency = FREQUENCY_MIN;
-      setRTC6715Frequency(scanFrequency);
+      receiver.setFrequency(scanFrequency);
       delay( RSSI_STABILITY_DELAY_MS );
       scanRssi = averageAnalogRead(RSSI_PIN);
       if (!i)
@@ -517,9 +542,9 @@ unsigned int graphicScanner( unsigned int frequency ) {
     updateScannerScreen(29 - ((FREQUENCY_MAX - scanFrequency) / FREQUENCY_DIVIDER), rssiDisplayValue1, rssiDisplayValue2 );
   }
   // Fine tuning
-  scanFrequency = scanFrequency - 20;
-  for (i = 0; i < 20; i++, scanFrequency += 2) {
-    setRTC6715Frequency(scanFrequency);
+  scanFrequency = scanFrequency - SCANNING_STEP*4;
+  for (i = 0; i < SCANNING_STEP*4; i++, scanFrequency += 2) {
+    receiver.setFrequency(scanFrequency);
     delay( RSSI_STABILITY_DELAY_MS );
     scanRssi = averageAnalogRead(RSSI_PIN);
     if (bestRssi < scanRssi) {
@@ -531,7 +556,7 @@ unsigned int graphicScanner( unsigned int frequency ) {
   osd(CMD_ENABLE_VIDEO);
 
   // Return the best frequency
-  setRTC6715Frequency(bestFrequency);
+  receiver.setFrequency(bestFrequency);
   return (bestFrequency);
 }
 
@@ -549,18 +574,18 @@ unsigned int autoScan( unsigned int frequency ) {
   osd(CMD_DISABLE_VIDEO);
 
   // Skip 10 MHz forward to avoid detecting the current channel
-  scanFrequency = frequency + SCANNING_STEP;
+  scanFrequency = frequency + 10;
   if (!(scanFrequency % 2))
     scanFrequency++;        // RTC6715 can only generate odd frequencies
 
   // Coarse tuning
   bestFrequency = scanFrequency;
   for (i = 0; i < 60 && (scanRssi < RSSI_TRESHOLD); i++) {
-    if ( scanFrequency <= (FREQUENCY_MAX - 10))
-      scanFrequency += 10;
+    if ( scanFrequency <= (FREQUENCY_MAX - SCANNING_STEP))
+      scanFrequency += SCANNING_STEP;
     else
       scanFrequency = FREQUENCY_MIN;
-    setRTC6715Frequency(scanFrequency);
+    receiver.setFrequency(scanFrequency);
     delay( RSSI_STABILITY_DELAY_MS );
     scanRssi = averageAnalogRead(RSSI_PIN);
     if (bestRssi < scanRssi) {
@@ -569,10 +594,10 @@ unsigned int autoScan( unsigned int frequency ) {
     }
   }
   // Fine tuning
-  scanFrequency = bestFrequency - 20;
+  scanFrequency = bestFrequency - SCANNING_STEP*4;
   bestRssi = 0;
-  for (i = 0; i < 20; i++, scanFrequency += 2) {
-    setRTC6715Frequency(scanFrequency);
+  for (i = 0; i < SCANNING_STEP*4; i++, scanFrequency += 2) {
+    receiver.setFrequency(scanFrequency);
     delay( RSSI_STABILITY_DELAY_MS );
     scanRssi = averageAnalogRead(RSSI_PIN);
     if (bestRssi < scanRssi) {
@@ -584,7 +609,7 @@ unsigned int autoScan( unsigned int frequency ) {
   osd(CMD_ENABLE_VIDEO);
 
   // Return the best frequency
-  setRTC6715Frequency(bestFrequency);
+  receiver.setFrequency(bestFrequency);
   return (bestFrequency);
 }
 //******************************************************************************
@@ -619,7 +644,7 @@ char *shortNameOfChannel(unsigned char channel, char *name)
   else if (channelIndex < 32)
     name[0] = 'f';
   else if (channelIndex < 40)
-    name[0] = 'r';
+    name[0] = 'c';
   else
     name[0] = 'l';
   name[1] = (channelIndex % 8) + '0' + 1;
@@ -653,133 +678,11 @@ char *longNameOfChannel(unsigned char channel, char *name)
 }
 
 //******************************************************************************
-//* function: calcFrequencyData
-//*         : calculates the frequency value for the syntheziser register B of
-//*         : the RTC6751 circuit that is used within the RX5808/RX5880 modules.
-//*         : this value is inteded to be loaded to register at adress 1 via SPI
-//*         :
-//*  Formula: frequency = ( N*32 + A )*2 + 479
-//******************************************************************************
-unsigned int calcFrequencyData( unsigned int frequency )
-{
-  unsigned int N;
-  unsigned char A;
-  frequency = (frequency - 479) / 2;
-  N = frequency / 32;
-  A = frequency % 32;
-  return (N << 7) |  A;
-}
-
-//******************************************************************************
-//* function: setRTC6715Frequency
-//*         : for a given frequency the register setting for synth register B of
-//*         : the RTC6715 circuit is calculated and bitbanged via the SPI bus
-//*         : please note that the synth register A is assumed to have default
-//*         : values.
-//*
-//* SPI data:  4 bits  Register Address  LSB first
-//*         :  1 bit   Read or Write     0=Read 1=Write
-//*         : 13 bits  N-Register Data   LSB first
-//*         :  7 bits  A-Register        LSB first
-//******************************************************************************
-void setRTC6715Frequency(unsigned int frequency)
-{
-  unsigned int sRegB;
-  unsigned char i;
-
-  sRegB = calcFrequencyData(frequency);
-
-  // Bit bang the syntheziser register
-
-  // Clock
-  spiEnableHigh();
-  delayMicroseconds(1);
-  spiEnableLow();
-
-  // Address (0x1)
-  spi_1();
-  spi_0();
-  spi_0();
-  spi_0();
-
-  // Read/Write (Write)
-  spi_1();
-
-  // Data (16 LSB bits)
-  for (i = 16; i; i--, sRegB >>= 1 ) {
-    (sRegB & 0x1) ? spi_1() : spi_0();
-  }
-  // Data zero padding
-  spi_0();
-  spi_0();
-  spi_0();
-  spi_0();
-
-  // Clock
-  spiEnableHigh();
-  delayMicroseconds(1);
-
-  digitalWrite(SLAVE_SELECT_PIN, LOW);
-  digitalWrite(SPI_CLOCK_PIN, LOW);
-  digitalWrite(SPI_DATA_PIN, LOW);
-}
-
-//******************************************************************************
-//* function: spi_1
-//******************************************************************************
-void spi_1()
-{
-  digitalWrite(SPI_CLOCK_PIN, LOW);
-  delayMicroseconds(1);
-  digitalWrite(SPI_DATA_PIN, HIGH);
-  delayMicroseconds(1);
-  digitalWrite(SPI_CLOCK_PIN, HIGH);
-  delayMicroseconds(1);
-  digitalWrite(SPI_CLOCK_PIN, LOW);
-  delayMicroseconds(1);
-}
-
-//******************************************************************************
-//* function: spi_0
-//******************************************************************************
-void spi_0()
-{
-  digitalWrite(SPI_CLOCK_PIN, LOW);
-  delayMicroseconds(1);
-  digitalWrite(SPI_DATA_PIN, LOW);
-  delayMicroseconds(1);
-  digitalWrite(SPI_CLOCK_PIN, HIGH);
-  delayMicroseconds(1);
-  digitalWrite(SPI_CLOCK_PIN, LOW);
-  delayMicroseconds(1);
-}
-
-//******************************************************************************
-//* function: spiEnableLow
-//******************************************************************************
-void spiEnableLow()
-{
-  delayMicroseconds(1);
-  digitalWrite(SLAVE_SELECT_PIN, LOW);
-  delayMicroseconds(1);
-}
-
-//******************************************************************************
-//* function: spiEnableHigh
-//******************************************************************************
-void spiEnableHigh()
-{
-  delayMicroseconds(1);
-  digitalWrite(SLAVE_SELECT_PIN, HIGH);
-  delayMicroseconds(1);
-}
-
-//******************************************************************************
 //* function: getVoltage
 //*         : returns battery voltage as an unsigned integer.
 //*         : The value is multiplied with 10, 12volts => 120, 7.2Volts => 72
 //*
-//*         : Measured voltage values: 
+//*         : Measured voltage values:
 //*         : 12.6v = 639   10.8v = 546   8.4v = 411   7.2v = 359
 //*         : The result is not linear...
 //*         : A rough estimation is that 5 steps correspond to 0.1 volts
@@ -799,12 +702,12 @@ void batteryMeter( unsigned char x, unsigned char y, bool showNumbers )
   unsigned int minV;
   unsigned int maxV;
 
-  if (options[BATTERY_TYPE_OPTION]) 
+  if (options[BATTERY_TYPE_OPTION])
   { /* 2s lipo battery*/
     minV = 68;
     maxV = 84;
   }
-  else 
+  else
   { /* 3s lipo battery */
     minV = 102;
     maxV = 126;
@@ -839,6 +742,64 @@ void batteryMeter( unsigned char x, unsigned char y, bool showNumbers )
     alarmOffPeriod = 0;
   }
   drawBattery(x, y, value, showNumbers);
+}
+
+//******************************************************************************
+//* function: updateSoftPositions
+//******************************************************************************
+void updateSoftPositions( void ) {
+  unsigned char i;
+
+  // Mark blocked channels in the softPositions array
+  for (i = 0; i < 48; i++)
+    softPositions[i] = positions[i];
+
+  if (!options[A_BAND_OPTION]) {
+    for (i = 0; i < 8; i++)
+      softPositions[getReversePosition( i )] = 255;
+  }
+  if (!options[B_BAND_OPTION]) {
+    for (i = 8; i < 16; i++)
+      softPositions[getReversePosition( i )] = 255;
+  }
+  if (!options[E_BAND_OPTION]) {
+    for (i = 16; i < 24; i++)
+      softPositions[getReversePosition( i )] = 255;
+  }
+  if (!options[F_BAND_OPTION]) {
+    for (i = 24; i < 32; i++)
+      softPositions[getReversePosition( i )] = 255;
+  }
+  if (!options[R_BAND_OPTION]) {
+    for (i = 32; i < 40; i++)
+      softPositions[getReversePosition( i )] = 255;
+  }
+  if (!options[L_BAND_OPTION]) {
+    for (i = 40; i < 48; i++)
+      softPositions[getReversePosition( i )] = 255;
+  }
+}
+
+//******************************************************************************
+//* function: resetOptions
+//*         : Resets all configuration settings to their default values
+//******************************************************************************
+void resetOptions(void) {
+  options[BATTERY_ALARM_OPTION]    = BATTERY_ALARM_DEFAULT;
+  options[ALARM_LEVEL_OPTION]      = ALARM_LEVEL_DEFAULT;
+  options[BATTERY_TYPE_OPTION]     = BATTERY_TYPE_DEFAULT;
+  options[BATTERY_CALIB_OPTION]    = BATTERY_CALIB_DEFAULT;
+  options[SHOW_STARTSCREEN_OPTION] = SHOW_STARTSCREEN_DEFAULT;
+  options[INFO_LINE_OPTION]        = INFO_LINE_DEFAULT;
+  options[INFO_LINE_POS_OPTION]    = INFO_LINE_POS_DEFAULT;
+  options[A_BAND_OPTION]           = A_BAND_DEFAULT;
+  options[B_BAND_OPTION]           = B_BAND_DEFAULT;
+  options[E_BAND_OPTION]           = E_BAND_DEFAULT;
+  options[F_BAND_OPTION]           = F_BAND_DEFAULT;
+  options[R_BAND_OPTION]           = R_BAND_DEFAULT;
+  options[L_BAND_OPTION]           = L_BAND_DEFAULT;
+
+  updateSoftPositions();
 }
 
 //******************************************************************************
@@ -877,7 +838,7 @@ void setOptions()
           else if (menuSelection == BATTERY_CALIB_OPTION)
           {
             if (options[BATTERY_CALIB_OPTION] < 250)
-              options[BATTERY_CALIB_OPTION]+= 5;
+              options[BATTERY_CALIB_OPTION] += 5;
           }
           else
             options[menuSelection] = !options[menuSelection];
@@ -892,14 +853,13 @@ void setOptions()
           else if (menuSelection == BATTERY_CALIB_OPTION)
           {
             if (options[BATTERY_CALIB_OPTION] > 5)
-              options[BATTERY_CALIB_OPTION]-=5;
+              options[BATTERY_CALIB_OPTION] -= 5;
           }
           else
             options[menuSelection] = !options[menuSelection];
           break;
 
         case LONG_CLICK:     // stop editing
-        case LONG_LONG_CLICK:
           in_edit_state = 0;
       }
     else
@@ -922,7 +882,6 @@ void setOptions()
           break;
 
         case LONG_CLICK:     // Execute command or toggle option
-        case LONG_LONG_CLICK:
           if (menuSelection == EXIT_COMMAND)
             exitNow = true;
           else if (menuSelection == RESET_SETTINGS_COMMAND)
@@ -939,6 +898,7 @@ void setOptions()
       drawOptionsScreen( menuSelection, in_edit_state );
     }
   }
+  updateSoftPositions();
 }
 
 //******************************************************************************
@@ -948,25 +908,34 @@ void setOptions()
 void testAlarm( void ) {
   unsigned char i;
 
-  for ( i = 0; i < 3; i++) {
-    analogWrite( ALARM_PIN, 1 << options[ALARM_LEVEL_OPTION] );
-    delay(ALARM_MIN_ON);
-    analogWrite( ALARM_PIN, 0 );
-    delay(ALARM_MIN_OFF);
+  while (getClickType(BUTTON_PIN) == NO_CLICK) {
+    for (i = 0; i < 3; i++) {
+      analogWrite( ALARM_PIN, 1 << options[ALARM_LEVEL_OPTION] );
+      delay(ALARM_MAX_ON);
+      analogWrite( ALARM_PIN, 0 );
+      delay(ALARM_MAX_OFF);
+    }
   }
-  for (i = 0; i < 3; i++) {
-    analogWrite( ALARM_PIN, 1 << options[ALARM_LEVEL_OPTION] );
-    delay(ALARM_MED_ON);
-    analogWrite( ALARM_PIN, 0 );
-    delay(ALARM_MED_OFF);
+}
+
+//******************************************************************************
+//* function: selectFunction
+//******************************************************************************
+uint8_t selectFunction(void)
+{
+  uint8_t function = 0;
+  uint8_t lastClick = NO_CLICK;
+  do
+  {
+    drawFunctionScreen( function );
+    lastClick = getClickType( BUTTON_PIN );
+    if (lastClick == SINGLE_CLICK)
+      function == 3 ? function = 0 : function++;
+    if (lastClick == DOUBLE_CLICK)
+      function == 0 ? function = 3 : function--;
   }
-  for (i = 0; i < 3; i++) {
-    analogWrite( ALARM_PIN, 1 << options[ALARM_LEVEL_OPTION] );
-    delay(ALARM_MAX_ON);
-    analogWrite( ALARM_PIN, 0 );
-    delay(ALARM_MAX_OFF);
-  }
-  analogWrite( ALARM_PIN, 0 );
+  while ( lastClick != LONG_CLICK );
+  return ( function );
 }
 
 //******************************************************************************
@@ -1018,6 +987,8 @@ void osd_string( const char *str )
   while (Serial.availableForWrite() < strlen(str)) ;
   Serial.write(str);
 }
+
+
 
 //******************************************************************************
 //* function: drawLogo
@@ -1076,10 +1047,44 @@ void drawStartScreen( void ) {
 }
 
 //******************************************************************************
-//* function: drawChannelScreen
-//*         : draws the standard screen with channel information
+//* function: drawFunctionScreen
 //******************************************************************************
-void drawChannelScreen( unsigned char channel) {
+#define XPOS  5
+#define YPOS  4
+uint8_t drawFunctionScreen( uint8_t function )
+{
+  drawLogo(1, 0);
+  batteryMeter(25, 0);
+
+  osd(CMD_SET_X, XPOS);
+  osd(CMD_SET_Y, YPOS);
+  function == 0 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
+  function == 0 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
+  osd_string(" Exit            ");
+
+  osd(CMD_SET_X, XPOS);
+  osd(CMD_SET_Y, YPOS + 1);
+  function == 1 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
+  function == 1 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
+  osd_string(" Graphic Scanner ");
+
+  osd(CMD_SET_X, XPOS);
+  osd(CMD_SET_Y, YPOS + 2);
+  function == 2 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
+  function == 2 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
+  osd_string(" Auto Scanner    ");
+
+  osd(CMD_SET_X, XPOS);
+  osd(CMD_SET_Y, YPOS + 3);
+  function == 3 ? osd(CMD_ENABLE_INVERSE) : osd(CMD_DISABLE_INVERSE);
+  function == 3 ? osd(CMD_ENABLE_FILL) : osd(CMD_DISABLE_FILL);
+  osd_string(" Options         ");
+}
+
+//******************************************************************************
+//* function: drawAutoScanScreen
+//******************************************************************************
+void drawAutoScanScreen( void ) {
   char buffer[22];
   unsigned char answer;
 
@@ -1090,42 +1095,11 @@ void drawChannelScreen( unsigned char channel) {
   osd( CMD_ENABLE_INVERSE );
 
   osd( CMD_SET_X, 1 );
-  osd( CMD_SET_Y, 3 );
-  osd_string("                         ");
-
-  osd( CMD_SET_X, 1 );
-  osd( CMD_SET_Y, 4 );
-  osd_string(" Frequency:              ");
-  osd( CMD_SET_X, 13 );
-  osd_int(getFrequency(channel));
-  osd_string( " MHz" );
-
-  osd( CMD_SET_X, 1 );
   osd( CMD_SET_Y, 5 );
-  osd_string(" Channel  :              ");
-  osd( CMD_SET_X, 13 );
-  osd_string(shortNameOfChannel(channel, buffer));
-
-  osd( CMD_SET_X, 1 );
-  osd( CMD_SET_Y, 6 );
-  osd_string(" Name     :              ");
-  osd( CMD_SET_X, 13 );
-  osd_string( longNameOfChannel(channel, buffer));
-
-  osd( CMD_SET_X, 1 );
-  osd( CMD_SET_Y, 7 );
-  osd_string("                         ");
+  osd_string("      Auto Scanning      ");
 
   osd( CMD_DISABLE_INVERSE );
   osd( CMD_DISABLE_FILL );
-}
-
-//******************************************************************************
-//* function: drawAutoScanScreen
-//******************************************************************************
-void drawAutoScanScreen( void ) {
-  drawLogo(1, 0);
-  batteryMeter(25, 0);
 }
 
 //******************************************************************************
@@ -1139,7 +1113,7 @@ void drawScannerScreen( void ) {
   }
   osd(CMD_SET_X, 0);
   osd(CMD_SET_Y, 12);
-  if ( options[LOW_BAND_OPTION] )
+  if ( options[L_BAND_OPTION] )
     osd_string(" 5.35       5.60       5.95");
   else
     osd_string(" 5.65       5.80       5.95");
@@ -1261,13 +1235,18 @@ void drawOptionsScreen(unsigned char option, unsigned char in_edit_state ) {
     }
     switch (j) {
       case BATTERY_ALARM_OPTION:     osd_string("battery alarm      "); break;
-      case ALARM_LEVEL_OPTION:       osd_string("alarm level        "); break;
+      case ALARM_LEVEL_OPTION:       osd_string("alarm sound level  "); break;
       case BATTERY_TYPE_OPTION:      osd_string("battery type       "); break;
       case BATTERY_CALIB_OPTION:     osd_string("volt calibration   "); break;
       case SHOW_STARTSCREEN_OPTION:  osd_string("show start screen  "); break;
       case INFO_LINE_OPTION:         osd_string("constant info line "); break;
       case INFO_LINE_POS_OPTION:     osd_string("info line position "); break;
-      case LOW_BAND_OPTION:          osd_string("display low band   "); break;
+      case A_BAND_OPTION:            osd_string("boscam a band      "); break;
+      case B_BAND_OPTION:            osd_string("boscam b band      "); break;
+      case E_BAND_OPTION:            osd_string("foxtech/dji band   "); break;
+      case F_BAND_OPTION:            osd_string("fatshark band      "); break;
+      case R_BAND_OPTION:            osd_string("race band          "); break;
+      case L_BAND_OPTION:            osd_string("low band           "); break;
       case RESET_SETTINGS_COMMAND:   osd_string("reset settings     "); break;
       case TEST_ALARM_COMMAND:       osd_string("test alarm         "); break;
       case EXIT_COMMAND:             osd_string("exit               "); break;
@@ -1284,13 +1263,18 @@ void drawOptionsScreen(unsigned char option, unsigned char in_edit_state ) {
     if (j < MAX_OPTIONS) {
       switch (j) {
         case BATTERY_ALARM_OPTION:    osd_string(options[j] ? "yes    " : "no     "); break;
-        case ALARM_LEVEL_OPTION:      osd_int(options[j]); osd_string("      "); break;
+        case ALARM_LEVEL_OPTION:      osd_int(options[j]);      osd_string("      "); break;
         case BATTERY_TYPE_OPTION:     osd_string(options[j] ? "2s lipo" : "3s lipo"); break;
-        case BATTERY_CALIB_OPTION:    osd_int(voltage/10); osd_string("."); osd_int(voltage%10);  osd_string("   ");break;
+        case BATTERY_CALIB_OPTION:    osd_int(voltage / 10); osd_string("."); osd_int(voltage % 10);  osd_string("   "); break;
         case SHOW_STARTSCREEN_OPTION: osd_string(options[j] ? "yes    " : "no     "); break;
         case INFO_LINE_OPTION:        osd_string(options[j] ? "yes    " : "no     "); break;
         case INFO_LINE_POS_OPTION:    osd_string(options[j] ? "left   " : "right  "); break;
-        case LOW_BAND_OPTION:         osd_string(options[j] ? "yes    " : "no     "); break;
+        case A_BAND_OPTION:           osd_string(options[j] ? "on     " : "off    "); break;
+        case B_BAND_OPTION:           osd_string(options[j] ? "on     " : "off    "); break;
+        case E_BAND_OPTION:           osd_string(options[j] ? "on     " : "off    "); break;
+        case F_BAND_OPTION:           osd_string(options[j] ? "on     " : "off    "); break;
+        case R_BAND_OPTION:           osd_string(options[j] ? "on     " : "off    "); break;
+        case L_BAND_OPTION:           osd_string(options[j] ? "on     " : "off    "); break;
       }
     }
     else
