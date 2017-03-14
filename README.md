@@ -33,7 +33,7 @@ The bottom right pin is VCC. That is the one below the hole with the square pad.
 
 #### Program the Processor
 The firmware on the MinimOSD must be replaced to make it able to talk to the CYCLOPS board.
-The firmware file is called [minimosd_for_cyclop_v0202.hex](https://raw.githubusercontent.com/Dvogonen/cyclop_plus_plus/master/minimosd_for_cyclop_v0203.hex) (right-click and download).
+The firmware file is called [minimosd_for_cyclop_v0203.hex](https://raw.githubusercontent.com/Dvogonen/cyclop_plus_plus/master/minimosd_for_cyclop_v0203.hex) (right-click and download).
 Check the format of the downloaded file. Each line must start with a colon character and only contain letters and numbers and look something like this:
 :100000000C941F030C9447030C9447030C94470370
 
@@ -68,7 +68,7 @@ An example of a piezo buzzer is this:
 ![Alarm Speaker Connection](/images/pcb_buzzer.jpg)
 
 #### Program the Processor
-The firmware file is called [cyclop_plus_plus_v0202.hex](https://raw.githubusercontent.com/Dvogonen/cyclop_plus_osd/master/cyclop_plus_plus_v0202.hex) (right-click and download).
+The firmware file is called [cyclop_plus_plus_v0203.hex](https://raw.githubusercontent.com/Dvogonen/cyclop_plus_osd/master/cyclop_plus_plus_v0203.hex) (right-click and download).
 Check the format of the downloaded file. Each line must start with a colon character and only contain letters and numbers and look something like this:
 :100000000C941F030C9447030C9447030C94470370
 
