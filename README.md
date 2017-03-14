@@ -113,7 +113,7 @@ It is possible to "Brick" the processors by tampering with the so called process
 There is no need to change any fuses from their original values (0xE2 0xD9 0x07 for the receiver board). Leave them alone.
 
 ##Version History
-* 2.3 Favourite bands selection added. Button timing improved. WORK IN PROGRESS - NOT YET RELEASED
+* 2.3 Favourite bands selection added. Button timing improved. 2017-03-14
 * 2.2 LowBand support added. Alarm level configuration added. 2017-03-10
 * 2.1 Battery voltage bug solved. First CYCLOP++ stable release. 2016-10-13
 * 2.0 Branched off from CYCLOP+. OLED code removed, MinimOSD code added. Beta1 2016-10-03
