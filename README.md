@@ -1,4 +1,9 @@
 #CYCLOP++ - v2.3
+
+##WARNING - DO NOT COMPILE THE MINIMOSD BINARY, USE THE PRECOMPILED VERSION.
+The latest versions of the Arduino environment causes problems that result in the screen output being completely broken.
+Until the root problem is found you should just use the precompiled version, which works well. 
+
 The Quanum Cyclops googles are limited to only the most basic functionality.
 The limitation is however not dependent on the electronic hardware, which is quite powerful.
 By replacing the firmware of the receiver board and adding an inexpensive MinimOSD module, the googles become fully featured. 
@@ -24,6 +29,12 @@ Avoid buing the Mikro MinimOSD variants. These are very small, which is convenie
 What is less convenient is that they do not have a power regulator.
 Neither do they have soldering pads for an ISP interface.
 It is technically possible to overcome these limitations, but how to do that is not described here.
+
+####Solder the SJ2 bridge 
+Some MinimOSD come with the two bridge points marked SJ2 soldered together while either do not.
+Bridging SJ2 makes it possible to supply power from the video side of the board to the processor sie of the board.
+This is what we do, so SJ2 MUST be bridged.
+Without the solder bridge, the minimOSD processor will not work at all.
 
 ####Mount the Programming Pins
 Solder a 2x3 block of pin headers into the holes for the ISP port.
