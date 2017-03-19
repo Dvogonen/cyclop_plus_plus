@@ -1,9 +1,5 @@
 #CYCLOP++ - v2.3
 
-##WARNING - DO NOT COMPILE THE MINIMOSD BINARY, USE THE PRECOMPILED VERSION.
-The latest versions of the Arduino environment causes problems that result in the screen output being completely broken.
-Until the root problem is found you should just use the precompiled version, which works well. 
-
 The Quanum Cyclops googles are limited to only the most basic functionality.
 The limitation is however not dependent on the electronic hardware, which is quite powerful.
 By replacing the firmware of the receiver board and adding an inexpensive MinimOSD module, the googles become fully featured. 
