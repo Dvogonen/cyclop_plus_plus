@@ -146,6 +146,6 @@
 // Release information
 #define VER_DATE_STRING           "2017-03-13"
 #define VER_INFO_STRING           "v2.3 by Dvogonen"
-#define VER_EEPROM                240
+#define VER_EEPROM                241
 
 #endif // cyclop_plus_osd_h
