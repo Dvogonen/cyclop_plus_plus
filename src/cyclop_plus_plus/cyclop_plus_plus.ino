@@ -104,7 +104,7 @@
 
 unsigned int  autoScan( unsigned int frequency );
 unsigned int  averageAnalogRead( unsigned char pin );
-void          batteryMeter(unsigned char x, unsigned char y, bool showNumbers = false);
+void          batteryMeter(unsigned char x, unsigned char y);
 unsigned char bestChannelMatch( unsigned int frequency );
 void          buttonPressInterrupt();
 void          drawAutoScanScreen(void);
@@ -693,10 +693,26 @@ unsigned int getVoltage( void )
   return ( 50 + (((averageAnalogRead(VOLTAGE_METER_PIN) - 250 + (options[BATTERY_CALIB_OPTION] - 128))) / 5 ));
 }
 
+
+//******************************************************************************
+//* function: GetRightBatteryX - calc the battery X position based on the
+//* BATTERY_TEXT_OPTION option
+//* pass in the default X position of the battery icon
+//******************************************************************************
+inline uint8_t GetRightBatteryX(uint8_t defaultX)
+{
+  if (options[BATTERY_TEXT_OPTION])
+  {
+    defaultX -= BATTERY_TEXT_WIDTH;
+  }
+
+  return defaultX;
+}
+
 //******************************************************************************
 //* function: batteryMeter
 //******************************************************************************
-void batteryMeter( unsigned char x, unsigned char y, bool showNumbers )
+void batteryMeter( unsigned char x, unsigned char y )
 {
   unsigned int voltage;
   unsigned char value;
@@ -742,7 +758,7 @@ void batteryMeter( unsigned char x, unsigned char y, bool showNumbers )
     alarmOnPeriod = 0;
     alarmOffPeriod = 0;
   }
-  drawBattery(x, y, value, showNumbers);
+  drawBattery(x, y, value, options[BATTERY_TEXT_OPTION]);
 }
 
 //******************************************************************************
@@ -799,6 +815,7 @@ void resetOptions(void) {
   options[F_BAND_OPTION]           = F_BAND_DEFAULT;
   options[R_BAND_OPTION]           = R_BAND_DEFAULT;
   options[L_BAND_OPTION]           = L_BAND_DEFAULT;
+  options[BATTERY_TEXT_OPTION]     = BATTERY_TEXT_DEFAULT;
 
   updateSoftPositions();
 }
@@ -1044,7 +1061,7 @@ void drawStartScreen( void ) {
   osd_string(VER_INFO_STRING);
 
   // Display battery status
-  batteryMeter( 25, 0 );
+  batteryMeter( GetRightBatteryX(25), 0 );
 }
 
 //******************************************************************************
@@ -1055,7 +1072,7 @@ void drawStartScreen( void ) {
 uint8_t drawFunctionScreen( uint8_t function )
 {
   drawLogo(1, 0);
-  batteryMeter(25, 0);
+  batteryMeter(GetRightBatteryX(25), 0);
 
   osd(CMD_SET_X, XPOS);
   osd(CMD_SET_Y, YPOS);
@@ -1090,7 +1107,7 @@ void drawAutoScanScreen( void ) {
   unsigned char answer;
 
   drawLogo(1, 0);
-  batteryMeter(25, 0);
+  batteryMeter(GetRightBatteryX(25), 0);
 
   osd( CMD_ENABLE_FILL );
   osd( CMD_ENABLE_INVERSE );
@@ -1248,6 +1265,7 @@ void drawOptionsScreen(unsigned char option, unsigned char in_edit_state ) {
       case F_BAND_OPTION:            osd_string("fatshark band      "); break;
       case R_BAND_OPTION:            osd_string("race band          "); break;
       case L_BAND_OPTION:            osd_string("low band           "); break;
+      case BATTERY_TEXT_OPTION:      osd_string("show bat percentage"); break;
       case RESET_SETTINGS_COMMAND:   osd_string("reset settings     "); break;
       case TEST_ALARM_COMMAND:       osd_string("test alarm         "); break;
       case EXIT_COMMAND:             osd_string("exit               "); break;
@@ -1276,6 +1294,7 @@ void drawOptionsScreen(unsigned char option, unsigned char in_edit_state ) {
         case F_BAND_OPTION:           osd_string(options[j] ? "on     " : "off    "); break;
         case R_BAND_OPTION:           osd_string(options[j] ? "on     " : "off    "); break;
         case L_BAND_OPTION:           osd_string(options[j] ? "on     " : "off    "); break;
+        case BATTERY_TEXT_OPTION:     osd_string(options[j] ? "on     " : "off    "); break;
       }
     }
     else
@@ -1291,8 +1310,16 @@ void drawOptionsScreen(unsigned char option, unsigned char in_edit_state ) {
 void drawLeftInfoLine( void )
 {
   char buffer[3];
-  batteryMeter(1, 0);
-  osd( CMD_SET_X, 3 );
+  uint8_t startX = 1;
+  uint8_t startXText = startX + BATTERY_SYMBOL_X_OFFSET_LEFT;
+
+  if (options[BATTERY_TEXT_OPTION])
+  {
+    startXText += BATTERY_TEXT_WIDTH;
+  }
+  
+  batteryMeter(startX, 0);
+  osd( CMD_SET_X, startXText );
   osd( CMD_SET_Y, 0);
   osd_string(shortNameOfChannel(currentChannel, buffer));
   osd_char(OSD_SPACE);
@@ -1309,8 +1336,13 @@ void drawLeftInfoLine( void )
 void drawRightInfoLine( void )
 {
   char buffer[3];
+  uint8_t startX = 12;
 
-  osd( CMD_SET_X, 12 );
+  if (options[BATTERY_TEXT_OPTION])
+  {
+    startX -= BATTERY_TEXT_WIDTH;
+  }
+  osd( CMD_SET_X, startX);
   osd( CMD_SET_Y, 0);
   osd_string(shortNameOfChannel(currentChannel, buffer));
   osd_char(OSD_SPACE);
@@ -1319,5 +1351,5 @@ void drawRightInfoLine( void )
   osd_char(OSD_SPACE);
   osd_char(OSD_ANTENNA);
   osd_int(averageAnalogRead(RSSI_PIN));
-  batteryMeter(25, 0);
+  batteryMeter(GetRightBatteryX(25), 0);
 }

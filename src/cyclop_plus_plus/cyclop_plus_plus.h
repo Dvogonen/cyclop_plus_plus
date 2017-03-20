@@ -38,15 +38,16 @@
 #define ALARM_LEVEL_OPTION        1
 #define BATTERY_TYPE_OPTION       2
 #define BATTERY_CALIB_OPTION      3 
-#define SHOW_STARTSCREEN_OPTION   4
-#define INFO_LINE_OPTION          5
-#define INFO_LINE_POS_OPTION      6
-#define A_BAND_OPTION             7
-#define B_BAND_OPTION             8
-#define E_BAND_OPTION             9
-#define F_BAND_OPTION             10
-#define R_BAND_OPTION             11
-#define L_BAND_OPTION             12
+#define BATTERY_TEXT_OPTION       4
+#define SHOW_STARTSCREEN_OPTION   5
+#define INFO_LINE_OPTION          6
+#define INFO_LINE_POS_OPTION      7
+#define A_BAND_OPTION             8
+#define B_BAND_OPTION             9
+#define E_BAND_OPTION             10
+#define F_BAND_OPTION             11
+#define R_BAND_OPTION             12
+#define L_BAND_OPTION             13
 
 #define BATTERY_ALARM_DEFAULT     1   /* On    */
 #define ALARM_LEVEL_DEFAULT       5   /* value 1-8   */
@@ -61,17 +62,25 @@
 #define F_BAND_DEFAULT            1   /* On */
 #define R_BAND_DEFAULT            1   /* On */
 #define L_BAND_DEFAULT            1   /* On */
+#define BATTERY_TEXT_DEFAULT      0   /* Off */
 
-#define MAX_OPTIONS               13
+#define MAX_OPTIONS               14
 
 // User Configuration Commands
-#define TEST_ALARM_COMMAND        13
-#define RESET_SETTINGS_COMMAND    14
-#define EXIT_COMMAND              15
+#define TEST_ALARM_COMMAND        14
+#define RESET_SETTINGS_COMMAND    15
+#define EXIT_COMMAND              16
 #define MAX_COMMANDS              3
 
 // Number of lines in configuration menu
 #define MAX_OPTION_LINES          9
+
+
+// battery text needs 4 chars extra in worst case 
+// (3 digits + %)
+#define BATTERY_TEXT_WIDTH 4
+// offset from battery symbol to text on the left info line
+#define BATTERY_SYMBOL_X_OFFSET_LEFT 2
 
 // Minimum time info is shown on screen
 #define FORCED_SCREEN_UPDATE_MS   6000
