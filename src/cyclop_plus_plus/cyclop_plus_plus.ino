@@ -352,7 +352,7 @@ void loop()
     if (millis() > alarmTimer) {
       alarmSoundOn = !alarmSoundOn;
       if (alarmSoundOn) {
-        analogWrite( ALARM_PIN, 1 << options[ALARM_LEVEL_OPTION] );
+        analogWrite( ALARM_PIN, (1 << options[ALARM_LEVEL_OPTION]) - 1 );
         alarmTimer = millis() + alarmOnPeriod;
       }
       else {
@@ -910,7 +910,7 @@ void testAlarm( void ) {
 
   while (getClickType(BUTTON_PIN) == NO_CLICK) {
     for (i = 0; i < 3; i++) {
-      analogWrite( ALARM_PIN, 1 << options[ALARM_LEVEL_OPTION] );
+      analogWrite( ALARM_PIN, (1 << options[ALARM_LEVEL_OPTION]) - 1 );
       delay(ALARM_MAX_ON);
       analogWrite( ALARM_PIN, 0 );
       delay(ALARM_MAX_OFF);
