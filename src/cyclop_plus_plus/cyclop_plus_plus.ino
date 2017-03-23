@@ -388,6 +388,7 @@ bool readEeprom(void) {
   currentChannel =   EEPROM.read(EEPROM_CHANNEL);
   for (i = 0; i < MAX_OPTIONS; i++)
     options[i] = EEPROM.read(EEPROM_OPTIONS + i);
+  updateSoftPositions();
   return true;
 }
 
