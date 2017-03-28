@@ -1216,7 +1216,6 @@ void drawBattery(unsigned char xPos, unsigned char yPos, unsigned char value, bo
     osd_char(OSD_BATTERY_0);
 
   if (showNumbers) {
-    osd_string(" ");
     osd_int(value);
     osd_string("%");
   }
