@@ -1,10 +1,10 @@
-#CYCLOP++ - v2.3
+# CYCLOP++ - v2.3
 
 The Quanum Cyclops googles are limited to only the most basic functionality.
 The limitation is however not dependent on the electronic hardware, which is quite powerful.
 By replacing the firmware of the receiver board and adding an inexpensive MinimOSD module, the googles become fully featured. 
 
-####Added Functions
+#### Added Functions
 * One or several favourite frequency bands can be selected. Only the frequencies on the favourite bands are used when the user manually steps through the frequencies. 
 * There is full 48 channel support. Both for the complete race band and the new low band.
 * The complete frequency range can be scanned for signal strength in order to find unused channels.
@@ -12,7 +12,7 @@ By replacing the firmware of the receiver board and adding an inexpensive MinimO
 * Channel Frequency, Channel Name, Signal Strength and Battery level are displayed on the googles video screen.
 * A low battery warning buzzer warns before the battery power cuts off.
 
-##Prepare the MinimOSD PCB
+## Prepare the MinimOSD PCB
 The screen information is added by installing a MinimOSD (aka Mavlink OSD).
 These modules are commonly used in RC FPV aircraft to add visual information to the FPV video signal.
 They are available from multiple sources and are inexpensive.
@@ -26,13 +26,13 @@ What is less convenient is that they do not have a power regulator.
 Neither do they have soldering pads for an ISP interface.
 It is technically possible to overcome these limitations, but how to do that is not described here.
 
-####Solder the SJ2 bridge 
+#### Solder the SJ2 bridge 
 Some MinimOSD come with the two bridge points marked SJ2 soldered together while either do not.
 Bridging SJ2 makes it possible to supply power from the video side of the board to the processor sie of the board.
 This is what we do, so SJ2 MUST be bridged.
 Without the solder bridge, the minimOSD processor will not work at all.
 
-####Mount the Programming Pins
+#### Mount the Programming Pins
 Solder a 2x3 block of pin headers into the holes for the ISP port.
 The 6 holes for the pin headers are found between the processor and the MAX7456 video circuit.
 The pins should point upwards on the same PCB side as all the other components are mounted.
@@ -48,8 +48,8 @@ If you do not know how to program Atmel controllers there is a guide [here](PROG
 
 If you want to build the firmware yourself, you can do so. Here is a link to the [description](BUILDING.md)
 
-##Prepare the CYCLOPS Receiver PCB
-####Mount the Programming Pins
+## Prepare the CYCLOPS Receiver PCB
+#### Mount the Programming Pins
 Solder a 2x3 block of pin headers into the holes for the ISP port.
 The holes for the ISP connector is found just to the right of the button switch. In the image they are marked as (1).
 The pins should point upwards on the same side as the receiver tin can is installed.
@@ -57,12 +57,12 @@ The pins should point upwards on the same side as the receiver tin can is instal
 
 The top left pin is VCC. That is the one above the hole with the square pad.
 
-####Cut the Video Trace
+#### Cut the Video Trace
 The trace leading between (2) and (3) carries the video signal. It must be cut since the signal should go via the OSD.
 Use a sharp knife and cut across the trace. 
 Use a multimeter to check that there is no longer any connection between (2) and (3).
 
-####Add the Alarm Buzzer
+#### Add the Alarm Buzzer
 A 5 volt miniature piezzo buzzer is used as a low battery alarm.
 Both active buzzers, and passive piezzo speakers can be used.
 The later kind is often refered to as "PC Motherboard Speakers".
@@ -83,7 +83,7 @@ If you do not know how to program Atmel controllers there is a guide [here](PROG
 
 If you want to build the firmware yourself, you can do so. Here is a link to the [description](BUILDING.md)
 
-##Connect the two boards
+## Connect the two boards
 Keep the wires as short as possible to avoid interference on the video and serial lines.
 * VIN to 2
 * VOUT to 3
@@ -92,13 +92,13 @@ Keep the wires as short as possible to avoid interference on the video and seria
 * TX to 5
 * VCC to 7
 
-##End Result
+## End Result
 I recommend mounting the minimOSD with double sided mounting tape on top of the radio shielding can. If you do, this how your finished double PCB will look like:
 ![Finished PCBs](/images/pcb_finished.jpg)
 Here are a few images of the intermediate build steps:
 [Soldering](SOLDERING.md)
 
-##Use CYCLOP++
+## Use CYCLOP++
 - A single click jumps up in frequency to the closest higher channel among the 48 available.
 - A double click jumps down in frequency.
 - A long click (longer than 0.5 seconds) brings up a menu.
@@ -107,19 +107,19 @@ Here are a few images of the intermediate build steps:
 - Auto Scanner: Performs an autoscan for the best channel, just like a single click does in the original firmware.
 - Graphical Scanner: Triggers a manual frequency scanner. The receiver will start cycling through all channels quickly. Click the button again to select a frequency.
 
-##Options Menu
+## Options Menu
 - Examples of configurable options: Battery type, screen saver, low level battery alarm, alarm sound level, information display characteristics.
 - It is possible to turn the use of individual bands On or Off. If a band is turned Off it will not be available for manual stepping. The idea is to be able to limit frequency stepping to the band you are using and ignore all other frequencies. All frequencies are however available for both Grahical Scanning and Auto Scanning. The exception to this rule is the Low Band. This band takes up as much bandwidth as all the others combined. If the Low Band is turned Off, the scan functions for it is also turned Off. The reason is that this doubles the resolution of frequency scans. 
 - The settings are saved when the Exit option is selected. All changes are lost if the battery is disconnected before Exit has been selected.
 
-##Words of Warning
+## Words of Warning
 Use of the FW is naturally on your own risk.
 It is possible to destroy the receiver electronics and the MinimOSB electronics by making faulty connections.
 Carefully check that everything is connected correctly and that nothing is shorted.
 It is possible to "Brick" the processors by tampering with the so called processor fuses.
 There is no need to change any fuses from their original values (0xE2 0xD9 0x07 for the receiver board). Leave them alone.
 
-##Version History
+## Version History
 * 2.3 Favourite bands selection added. Button timing improved. 2017-03-14
 * 2.2 LowBand support added. Alarm level configuration added. 2017-03-10
 * 2.1 Battery voltage bug solved. First CYCLOP++ stable release. 2016-10-13
@@ -130,7 +130,7 @@ There is no need to change any fuses from their original values (0xE2 0xD9 0x07 
 * 1.1 (CYCLOP+)Functionly complete dev version, not released
 * 1.0 (CYCLOP+)Initial dev version, not released
 
-##License
+## License
 This project was forked from v1.4 of the CYCLOP+ project. The original project uses an extra OLED screen to display information instead of the google screen.
 
 The MIT License (MIT)

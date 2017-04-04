@@ -1,4 +1,4 @@
-#Soldering
+# Soldering
 Start by cutting the video track.
 ![Track Cut](/images/pcb_cut_track.jpg)
 

@@ -1,4 +1,4 @@
-##Program the CYCLOPS and the MinimOSD Boards
+## Program the CYCLOPS and the MinimOSD Boards
 Both PCBs use the same micro controller type, i.e. Atmel Atmega 328p.
 This is good since the same programming tools can be used for both boards.
 To program or "flash" firmware to the boards you must have an ISP programmer for
@@ -50,7 +50,7 @@ There is a GUI version available that is called AVRDUDESS.
 This program is quite nice, so I recommend it instead of the bare bones original.
 You find it here: http://blog.zakkemble.co.uk/avrdudess-a-gui-for-avrdude/
 
-##Programming
+## Programming
 Both boards are programmed in the exact same way:
 - Make sure that the programmer does not supply power (Remove Jumper J1).
 - Attach the battery.
